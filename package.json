@@ -1,0 +1,23 @@
+{
+  "name": "project-control-center",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "api:dev": "bun run api/index.js"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "svelte": "^5.43.8",
+    "tailwindcss": "3.4.17",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "hono": "^4.11.3"
+  }
+}

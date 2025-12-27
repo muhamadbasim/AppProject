@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Project Control Center</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        // Regal Black and Gold color scheme
+                        "primary": "#FFD700", // Bright, shimmering pure gold for active elements, primary metrics, headlines
+                        "secondary": "#B8860B", // Richer, slightly darker gold for completed statuses
+                        "warning": "#DAA520", // Muted, earthy gold for warnings/risk
+                        "danger": "#FFD700", // Pure gold for danger/overdue background
+                        "background-dark": "#0A0A0A", // Very deep, velvety black background
+                        "surface-dark": "#1A1A1A", // Slightly lighter surface black
+                        "surface-highlight": "#2A2A2A", // Highlighted elements black
+                        "border-dark": "#362F1A", // Darker subtle gold-ish borders
+                        "text-light": "#FFD700", // Light gold text for contrast
+                        "text-muted": "#AA8E4A", // Muted gold text
+                        "text-on-gold": "#0A0A0A" // Black text on gold background
+                    },
+                    fontFamily: {
+                        // Condensed sans-serif font for data density
+                        "display": ["Roboto Condensed", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }.no-scrollbar {
+            -ms-overflow-style: none;scrollbar-width: none;}
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.95);backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }.mini-chart {
+            display: flex;
+            height: 12px;gap: 1px;
+            position: absolute;
+            bottom: 0px;left: 0;
+            right: 0;
+            padding: 0 2px;
+            background: rgba(255,215,0,0.1);
+        }
+        .mini-chart-bar {
+            flex: 1;
+            background: rgba(255,215,0,0.1);height: 100%;
+            border-radius: 1px;
+            transition: height 0.1s ease-out;
+            transform-origin: bottom;
+        }
+        .mini-chart-bar.high { background: var(--primary); }
+        .mini-chart-bar.medium { background: var(--warning); }
+        .mini-chart-bar.low { background: var(--secondary); }
+        .gantt-bar-info {
+            @apply flex flex-col justify-center text-[9px] font-medium leading-none px-2 py-0.5;
+            z-index: 10;
+        }.bottom-sheet-active {
+            transform: translateY(0%);
+        }
+        .bottom-sheet-inactive {
+            transform: translateY(100%);
+        }.sticky-col-shadow {
+            box-shadow: 4px 0 12px rgba(0,0,0,0.5);
+        }.current-time-indicator {
+            background-color: var(--primary);
+            box-shadow: 0 0 8px rgba(255,215,0,0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark font-display text-text-light h-screen flex flex-col overflow-hidden">
+<header class="flex items-center justify-between p-4 bg-background-dark z-20 shadow-lg shadow-black/40 shrink-0">
+<button class="text-text-light flex size-10 shrink-0 items-center justify-center rounded-full active:bg-surface-highlight transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="text-center flex-1 px-2">
+<h1 class="text-lg font-bold leading-tight text-primary">Project Control Center</h1>
+<p class="text-[10px] text-text-muted uppercase tracking-widest">Real-time Project Overview</p>
+</div>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 items-center justify-center rounded-full active:bg-surface-highlight transition-colors text-text-light">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<div class="px-3 py-2 bg-background-dark z-20 shrink-0 border-b border-border-dark">
+<div class="flex h-9 w-full items-center justify-center rounded-lg bg-surface-dark p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all hover:bg-surface-highlight has-[:checked]:bg-primary has-[:checked]:shadow-sm has-[:checked]:text-text-on-gold text-text-muted text-xs font-semibold">
+<span class="truncate">Daily</span>
+<input class="invisible w-0 absolute" name="view-toggle" type="radio" value="Day"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all hover:bg-surface-highlight has-[:checked]:bg-primary has-[:checked]:shadow-sm has-[:checked]:text-text-on-gold text-text-muted text-xs font-semibold">
+<span class="truncate">Weekly</span>
+<input checked="" class="invisible w-0 absolute" name="view-toggle" type="radio" value="Week"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all hover:bg-surface-highlight has-[:checked]:bg-primary has-[:checked]:shadow-sm has-[:checked]:text-text-on-gold text-text-muted text-xs font-semibold">
+<span class="truncate">Monthly</span>
+<input class="invisible w-0 absolute" name="view-toggle" type="radio" value="Month"/>
+</label>
+</div>
+</div>
+<div class="flex overflow-x-auto no-scrollbar bg-background-dark border-b border-border-dark shrink-0 pl-[220px]">
+<div class="flex min-w-max">
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+<span class="text-[9px] font-medium text-text-muted uppercase">Mon</span>
+<span class="text-sm font-bold text-text-light">16</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-primary/10">
+<span class="text-[9px] font-medium text-primary uppercase">Tue</span>
+<div class="size-5 bg-primary rounded-full flex items-center justify-center mt-0.5">
+<span class="text-xs font-bold text-text-on-gold">17</span>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+<span class="text-[9px] font-medium text-text-muted uppercase">Wed</span>
+<span class="text-sm font-bold text-text-light">18</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+<span class="text-[9px] font-medium text-text-muted uppercase">Thu</span>
+<span class="text-sm font-bold text-text-light">19</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+<span class="text-[9px] font-medium text-text-muted uppercase">Fri</span>
+<span class="text-sm font-bold text-text-light">20</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-surface-dark/50 opacity-70">
+<span class="text-[9px] font-medium text-text-muted uppercase">Sat</span>
+<span class="text-sm font-bold text-text-muted">21</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-surface-dark/50 opacity-70">
+<span class="text-[9px] font-medium text-text-muted uppercase">Sun</span>
+<span class="text-sm font-bold text-text-muted">22</span>
+</div>
+<div class="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+<span class="text-[9px] font-medium text-text-muted uppercase">Mon</span>
+<span class="text-sm font-bold text-text-light">23</span>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto overflow-x-auto relative bg-background-dark" id="gantt-container">
+<div class="absolute top-0 bottom-0 left-[295px] w-px current-time-indicator z-10 pointer-events-none"></div>
+<div class="min-w-max pb-24">
+<div class="flex items-stretch h-20 group">
+<div class="sticky left-0 w-[220px] bg-background-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+<div class="flex items-center gap-2 mb-0.5">
+<div class="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10" data-alt="Portrait of a smiling man with glasses" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBcr0kA75mJNq_BBJwZXZAMXl99uaw1oOTO-ivZcTUweOtM9xxiMBekqEBGBj6XQEcdGbyUCgGjqE97rPgg259DygfgbOW3R7DoVcVx65Bmouh_YsW0b1GdHa8rbfHK3EkbI3m5lrKh5AHRgXLO0cTHqGlQjUfo3Nf3hvts63S0zwemStbJRuIpwvOhyKOYAb2QHfm4WiK9Gr12JdR12aAtsQLPUAQDI_4R5kRcgUkNSZ3xlukqEZ2wQhy9qOX-A0uBzJgKGas8wAOa');"></div>
+<div class="flex flex-col overflow-hidden leading-tight">
+<span class="text-xs font-bold truncate text-text-light">UX Research</span>
+<span class="text-[10px] text-secondary">Done</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-danger text-xs !leading-none">attach_money</span><span class="text-danger bg-danger text-text-on-gold px-1 rounded">($1.2K (+$200)</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-warning text-xs !leading-none">priority_high</span><span class="text-warning">Risk: Med</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event_available</span><span>Actual: Oct 15</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event</span><span>Plan: Oct 17</span></div>
+</div>
+</div>
+<div class="flex relative border-b border-border-dark">
+<div class="absolute inset-0 flex pointer-events-none">
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+</div>
+<div class="relative h-full flex items-center pl-2">
+<div class="h-14 rounded-md bg-secondary/20 w-[130px] flex flex-col justify-between relative overflow-hidden ring-1 ring-secondary/40 shadow-lg shadow-secondary/10">
+<div class="absolute inset-y-0 left-0 bg-secondary w-full opacity-30"></div>
+<div class="gantt-bar-info text-secondary">
+<span class="font-bold">100% Complete</span>
+<span>Budget: $1.2K / $1.0K <span class="text-danger bg-danger text-text-on-gold px-1 rounded">(-$200)</span></span>
+<span>Risk Score: Low</span>
+</div>
+<div class="mini-chart px-0.5">
+<div class="mini-chart-bar low h-[80%]"></div>
+<div class="mini-chart-bar low h-[90%]"></div>
+</div>
+</div>
+<svg class="absolute top-1/2 left-[132px] w-[50px] h-[40px] pointer-events-none z-0" style="overflow:visible;">
+<path d="M 0 0 C 20 0, 20 45, 40 45" fill="none" stroke="#362F1A" stroke-dasharray="4" stroke-width="1.5"></path>
+<circle cx="0" cy="0" fill="#362F1A" r="2"></circle>
+<polygon fill="#362F1A" points="40,45 35,42 35,48" transform="translate(2,0)"></polygon>
+</svg>
+</div>
+</div>
+</div>
+<div class="flex items-stretch h-20 group bg-surface-dark">
+<div class="sticky left-0 w-[220px] bg-surface-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+<div class="flex items-center gap-2 mb-0.5">
+<div class="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10" data-alt="Portrait of a woman with curly hair" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD7D4mRU7c9QoNynHl2jWtsELAzLhMGia0MnYO9TRhBluUaT3gziYprJbZXKa94ESfFM7RHtJOUX4s1iIMuNGIVMeezq0G4g16xR6BPQXD82FmnZErhMBtC1bopz6N303_EHp9xxdjLj6EmpCkF2sQBfwwRQNaPMqDSTvE-J8sQDpaBF6rVMX0UQ-HeDMhev7H303VhGaH4n6MZq5AXzVw3Mo-mwu887gfPu0i20KVtY7AaYABw_l_9GUp1_pmCVNpGuG0tsGHXoEur');"></div>
+<div class="flex flex-col overflow-hidden leading-tight">
+<span class="text-xs font-bold truncate text-text-light">Design Phase</span>
+<span class="text-[10px] text-primary">In Progress</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">attach_money</span><span>$2.5K / $2.8K</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-warning text-xs !leading-none">priority_high</span><span class="text-warning">Risk: Med</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-danger text-xs !leading-none">event_busy</span><span class="text-danger bg-danger text-text-on-gold px-1 rounded">Est: Oct 20</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event</span><span>Plan: Oct 19</span></div>
+</div>
+</div>
+<div class="flex relative border-b border-border-dark">
+<div class="absolute inset-0 flex pointer-events-none">
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+</div>
+<div class="relative h-full flex items-center pl-[180px]">
+<div class="h-14 rounded-md bg-primary/20 w-[180px] flex flex-col justify-between relative overflow-hidden border border-primary/60 shadow-lg shadow-primary/10">
+<div class="absolute inset-y-0 left-0 bg-primary w-[45%] opacity-30"></div>
+<div class="gantt-bar-info text-primary">
+<span class="font-bold">45% Complete</span>
+<span>Budget: $2.5K / $2.8K</span>
+<span>Risk Score: Medium</span>
+<span>Due: Oct 20 (1 day late)</span>
+</div>
+<div class="mini-chart px-0.5">
+<div class="mini-chart-bar medium h-[60%]"></div>
+<div class="mini-chart-bar medium h-[75%]"></div>
+<div class="mini-chart-bar high h-[85%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-stretch h-20 group">
+<div class="sticky left-0 w-[220px] bg-background-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+<div class="flex items-center gap-2 mb-0.5">
+<div class="size-7 rounded-full bg-surface-highlight shrink-0 flex items-center justify-center text-xs font-bold text-text-light border border-white/10">DT</div>
+<div class="flex flex-col overflow-hidden leading-tight">
+<span class="text-xs font-bold truncate text-text-light">API Dev</span>
+<span class="text-[10px] text-text-muted">Pending</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">attach_money</span><span>$3.0K (Est)</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-danger text-xs !leading-none">priority_high</span><span class="text-danger bg-danger text-text-on-gold px-1 rounded">Risk: High</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event_available</span><span>Est: Oct 26</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event</span><span>Plan: Oct 23</span></div>
+</div>
+</div>
+<div class="flex relative border-b border-border-dark">
+<div class="absolute inset-0 flex pointer-events-none">
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+</div>
+<div class="relative h-full flex items-center pl-[365px]">
+<div class="h-14 rounded-md bg-surface-highlight w-[140px] flex flex-col justify-between relative overflow-hidden border border-dashed border-text-muted/50">
+<div class="gantt-bar-info text-text-muted">
+<span class="font-bold">Estimated 4 Days</span>
+<span>Budget: $3.0K (Est)</span>
+<span>Risk Score: High</span>
+<span>Starts: Oct 21</span>
+</div>
+<div class="mini-chart px-0.5">
+<div class="mini-chart-bar h-[30%]"></div>
+<div class="mini-chart-bar h-[40%]"></div>
+<div class="mini-chart-bar h-[20%]"></div>
+<div class="mini-chart-bar h-[50%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-stretch h-20 group bg-surface-dark">
+<div class="sticky left-0 w-[220px] bg-surface-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+<div class="flex items-center gap-2 mb-0.5">
+<div class="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10" data-alt="Portrait of a person with glasses" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvYega6vie4tM3Xuu9GLYusSV1znA3Jzoci7wlA60fzYejplEx_1_XOEWKcNt6sbqcIhOOTATNsgkZ7KQgvieoKrdc9VdqNp6265kDxHiCcQ50q29I2Er6oXkSykOroLN8i58X07lbflQt_ipezdcraHyR1wPgN6sgFhCOpYBLj6spAn9NjYWnigIexkJTXLp2QU3vxEn_2RUjC8ejObsxHeBzCUlhyniEwzjKgXax2WtJ4fOXRvYeGctsXM79WaW_5F0g_f488EY4');"></div>
+<div class="flex flex-col overflow-hidden leading-tight">
+<span class="text-xs font-bold truncate text-text-light">QA Testing</span>
+<span class="text-[10px] text-danger bg-danger text-text-on-gold px-1 rounded">Blocked</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">attach_money</span><span>$1.5K (Est)</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-warning text-xs !leading-none">priority_high</span><span class="text-warning">Risk: Med</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event_available</span><span>Est: Oct 30</span></div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-text-muted text-xs !leading-none">event</span><span>Plan: Oct 26</span></div>
+</div>
+</div>
+<div class="flex relative border-b border-border-dark">
+<div class="absolute inset-0 flex pointer-events-none">
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+<div class="w-[70px] border-r border-dashed border-border-dark/30 h-full"></div>
+</div>
+<div class="relative h-full flex items-center pl-[510px]">
+<div class="h-14 rounded-md bg-surface-highlight/50 w-[100px] flex flex-col justify-between relative overflow-hidden border border-dashed border-danger/50 opacity-70">
+<div class="gantt-bar-info text-danger bg-danger text-text-on-gold px-1 rounded">
+<span class="font-bold">Blocked - Waiting</span>
+<span>Due: Oct 30</span>
+<span>(4 days delay)</span>
+</div>
+<div class="mini-chart px-0.5">
+<div class="mini-chart-bar h-[10%]"></div>
+<div class="mini-chart-bar h-[15%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-16 flex items-center justify-center border-b border-border-dark text-text-muted text-xs italic">
+                + Initiate New Task
+             </div>
+</div>
+</div>
+<div class="bg-surface-dark border-t border-border-dark shrink-0 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+<div class="grid grid-cols-4 gap-1 p-2">
+<button class="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">filter_list</span>
+<span class="text-[10px] font-medium text-text-muted">Filter</span>
+</button>
+<button class="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">insights</span>
+<span class="text-[10px] font-medium text-text-muted">Analytics</span>
+</button>
+<button class="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+<span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">calendar_month</span>
+<span class="text-[10px] font-medium text-text-muted">Schedule</span>
+</button>
+<button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 group">
+<span class="material-symbols-outlined text-primary group-hover:text-primary transition-colors text-xl">add_circle</span>
+<span class="text-[10px] font-bold text-primary">New Task</span>
+</button>
+</div>
+</div>
+<div class="absolute inset-x-0 bottom-0 z-40 transform transition-transform duration-300 ease-out shadow-[0_-8px_30px_rgba(0,0,0,0.5)] bg-surface-dark rounded-t-3xl border-t border-border-dark max-h-[55vh] overflow-y-auto bottom-sheet-inactive" id="details-sheet" style="transform: translateY(100%);">
+<div class="sticky top-0 bg-surface-dark py-3 flex justify-center z-10">
+<div class="w-12 h-1.5 rounded-full bg-text-muted/30"></div>
+</div>
+<div class="px-6 pb-8">
+<div class="flex justify-between items-start mb-6">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/20 text-primary">In Progress</span>
+<span class="text-text-muted text-xs">Oct 16 - Oct 20</span>
+</div>
+<h3 class="text-xl font-bold text-text-light">Design Phase</h3>
+<p class="text-sm text-text-muted">Lead: Sarah J.</p>
+</div>
+<button class="size-8 flex items-center justify-center rounded-full bg-surface-highlight text-text-light">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-3 mb-4">
+<div class="bg-background-dark rounded-xl p-3 border border-border-dark">
+<p class="text-xs text-text-muted mb-1">Budget Status</p>
+<p class="text-lg font-bold text-primary">$2.5K / <span class="text-text-muted">$2.8K</span></p>
+<p class="text-[10px] text-danger bg-danger text-text-on-gold px-1 rounded mt-1 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs !leading-none">trending_down</span> $300 Over</p>
+</div>
+<div class="bg-background-dark rounded-xl p-3 border border-border-dark">
+<p class="text-xs text-text-muted mb-1">Risk Score</p>
+<p class="text-lg font-bold text-warning">Medium</p>
+<p class="text-[10px] text-text-muted mt-1 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs !leading-none">data_alert</span> Potential Delays</p>
+</div>
+<div class="bg-background-dark rounded-xl p-3 border border-border-dark">
+<p class="text-xs text-text-muted mb-1">Planned Dates</p>
+<p class="text-lg font-bold text-text-light">Oct 16 - 19</p>
+<p class="text-[10px] text-text-muted mt-1 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs !leading-none">schedule</span> 4 Days</p>
+</div>
+<div class="bg-background-dark rounded-xl p-3 border border-border-dark">
+<p class="text-xs text-text-muted mb-1">Actual / Forecast</p>
+<p class="text-lg font-bold text-text-light">Oct 16 - 20</p>
+<p class="text-[10px] text-danger bg-danger text-text-on-gold px-1 rounded mt-1 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs !leading-none">arrow_forward</span> 1 Day Delay</p>
+</div>
+</div>
+<div class="bg-background-dark rounded-xl p-4 mb-4 border border-border-dark">
+<div class="flex justify-between items-end mb-3">
+<p class="text-sm font-medium text-text-light">Resource Load</p>
+<p class="text-xs font-bold text-warning">High (85%)</p>
+</div>
+<div class="flex h-24 gap-3 items-end">
+<div class="flex-1 flex flex-col items-center gap-1 group">
+<div class="w-full bg-surface-highlight rounded-t-sm h-[40%] group-hover:bg-primary/40 transition-all"></div>
+<span class="text-[10px] text-text-muted font-medium">Mon</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 group">
+<div class="w-full bg-primary rounded-t-sm h-[85%] relative shadow-[0_0_10px_rgba(255,215,0,0.3)]"></div>
+<span class="text-[10px] text-text-light font-bold">Tue</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 group">
+<div class="w-full bg-primary/80 rounded-t-sm h-[70%] group-hover:bg-primary transition-all"></div>
+<span class="text-[10px] text-text-muted font-medium">Wed</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 group">
+<div class="w-full bg-surface-highlight rounded-t-sm h-[50%] group-hover:bg-primary/40 transition-all"></div>
+<span class="text-[10px] text-text-muted font-medium">Thu</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 group">
+<div class="w-full bg-surface-highlight rounded-t-sm h-[30%] group-hover:bg-primary/40 transition-all"></div>
+<span class="text-[10px] text-text-muted font-medium">Fri</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex items-center justify-center gap-2 h-12 rounded-lg bg-background-dark text-text-light text-sm font-semibold hover:bg-surface-highlight transition-colors border border-border-dark">
+<span class="material-symbols-outlined text-lg">chat</span>
+                    Discussions
+                </button>
+<button class="flex items-center justify-center gap-2 h-12 rounded-lg bg-background-dark text-text-light text-sm font-semibold hover:bg-surface-highlight transition-colors border border-border-dark">
+<span class="material-symbols-outlined text-lg">attachment</span>
+                    Documents
+                </button>
+</div>
+</div>
+</div>
+<div class="fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 animate-[fadeIn_0.5s_ease-out_2s_forwards]">
+<div class="bg-black/80 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/5">
+<span class="material-symbols-outlined text-white text-sm">screen_rotation</span>
+<span class="text-xs text-white font-medium">Rotate for optimal data view</span>
+</div>
+</div>
+<script>
+        // Simple JS for the bottom sheet interaction
+        document.addEventListener('DOMContentLoaded', () => {
+            const detailsSheet = document.getElementById('details-sheet');
+            // Mock interaction for demonstration
+            // You can attach this to an actual Gantt bar click event
+            setTimeout(() => {
+                detailsSheet.classList.remove('bottom-sheet-inactive');
+                detailsSheet.classList.add('bottom-sheet-active');
+                detailsSheet.style.transform = 'translateY(0%)';
+            }, 1000); // Opens after 1 second
+        });
+    </script>
+</div>
+</div>
+</body></html>

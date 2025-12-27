@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SYSTEM REPORT</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-text": "#FFFACD", // Primary text - neon yellow-gold
+                        "primary-accent": "#FFFF00", // Primary accents and interactive elements - pure glowing gold
+                        "background-dark": "#000000", // Deep black background
+                        "border-metallic-gray": "#4A4A4A", // Borders and secondary backgrounds - metallic dark gray
+                        "high-priority": "#FFA500", // High priority - shocking orange-gold
+                        "blocked-status": "#FFD700", // Blocked status - bold, pure gold
+                        "muted-text": "#F0F8FF", // Muted text - pale, cool white-gold
+                    },
+                    fontFamily: {
+                        "mono": ["'Roboto Mono'", "monospace"] // Monospace font
+                    },
+                    borderRadius: {
+                        "none": "0", // Eliminate all rounded corners
+                    },
+                },
+            },
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style>body {
+            min-height: max(884px, 100dvh);
+            background-color: var(--background-dark);
+            color: var(--primary-text);font-family: var(--font-mono);
+            font-size: 0.875rem;line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }.rounded-none { border-radius: 0 !important; }.cli-section {
+            border-top: 1px solid var(--border-metallic-gray);padding-top: 0.5rem;padding-bottom: 0.5rem;
+        }
+        .cli-section:first-of-type {
+            border-top: none;
+        }
+        .cli-line {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+        .cli-label {
+            color: var(--primary-accent);font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        .cli-value {
+            text-align: right;
+            flex-grow: 1;
+        }
+        .cli-full-line {
+            width: 100%;
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }.pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark font-mono text-primary-text antialiased overflow-x-hidden p-0 m-0">
+<div class="relative flex min-h-screen w-full flex-col">
+<header class="flex items-center justify-between bg-background-dark px-2 py-2 border-b border-border-metallic-gray sticky top-0 z-50">
+<button class="text-primary-text hover:text-primary-accent active:scale-100 transition-none p-0 m-0">
+<span class="text-primary-accent">CMD:BACK</span>
+</button>
+<h2 class="text-sm font-bold tracking-tight text-primary-text">SYSTEM REPORT: PROJ-123</h2>
+<button class="text-primary-text hover:text-primary-accent active:scale-100 transition-none p-0 m-0">
+<span class="text-primary-accent">OPTN:MENU</span>
+</button>
+</header>
+<main class="flex flex-col gap-0 p-2 pt-0">
+<div class="cli-section pb-2">
+<h1 class="text-lg font-bold leading-tight tracking-tight text-primary-accent mt-2 mb-2">REF: USER_AUTH_API</h1>
+</div>
+<div class="cli-section">
+<div class="flex flex-wrap items-center gap-4">
+<span class="text-background-dark bg-primary-accent px-1 py-0 text-xs font-bold uppercase">STATUS: IN_PROGRESS</span>
+<span class="text-primary-text bg-border-metallic-gray px-1 py-0 text-xs font-bold uppercase">TYPE: BACKEND</span>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line">
+<span class="cli-label">PROG</span>
+<span class="cli-value text-primary-accent">65% [ON_TRACK]</span>
+</div>
+<div class="h-2 w-full bg-border-metallic-gray flex items-center justify-start overflow-hidden my-1">
+<div class="h-full bg-primary-accent" style="width: 65%;"></div>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line">
+<span class="cli-label">ASSG</span>
+<span class="cli-value">JANE_DOE</span>
+</div>
+<div class="cli-line">
+<span class="cli-label">DUE</span>
+<span class="cli-value">OCT_24 (2D)</span>
+</div>
+<div class="cli-line">
+<span class="cli-label">PRIO</span>
+<span class="cli-value text-high-priority font-bold">HIGH</span>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line mb-1">
+<span class="cli-label">DESC</span>
+<span class="cli-value"></span>
+</div>
+<div class="cli-full-line pl-4 text-primary-text overflow-auto max-h-24">
+<p class="text-xs">
+                        REWRITE AUTHENTICATION MIDDLEWARE TO SUPPORT JWT_TOKENS. INCLUDES UPDATING USER_SCHEMA, IMPLEMENTING TOKEN_REFRESH_LOGIC, AND ENSURING BACKWARD_COMPATIBILITY WITH LEGACY SESSION-BASED_AUTH_SYSTEM.
+                    </p>
+<button class="text-xs text-primary-accent mt-1 hover:underline">CMD:MORE_INFO</button>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line mb-1">
+<span class="cli-label">DEPS</span>
+<span class="cli-value"></span>
+</div>
+<div class="cli-full-line pl-4 text-primary-text border-l border-primary-accent pt-1 pb-1">
+<span class="text-xs text-blocked-status font-bold block">BLOCKED_BY: PROJ-40</span>
+<span class="text-xs block">DATABASE SCHEMA UPDATE</span>
+<button class="text-xs text-primary-accent mt-1 hover:underline">CMD:VIEW_DEP</button>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line">
+<span class="cli-label">SPNT</span>
+<span class="cli-value">$2500</span>
+</div>
+<div class="cli-line">
+<span class="cli-label">ALLOC</span>
+<span class="cli-value">$5000</span>
+</div>
+<div class="h-2 w-full bg-border-metallic-gray flex items-center justify-start overflow-hidden my-1">
+<div class="h-full bg-primary-accent" style="width: 50%;"></div>
+<div class="absolute right-0 top-0 h-full w-0.5 bg-high-priority opacity-50"></div>
+</div>
+<div class="flex justify-between text-xs font-medium text-muted-text">
+<span>50% USED</span>
+<span>100% CAP</span>
+</div>
+</div>
+<div class="cli-section">
+<div class="cli-line mb-1">
+<span class="cli-label">LOGS</span>
+<span class="cli-value"></span>
+</div>
+<div class="cli-full-line pl-4 text-primary-text pt-1 pb-1">
+<p class="text-xs">
+<span class="text-primary-accent font-bold">ALEX_M:</span> "CHECK NEW ENDPOINT_SPECS BEFORE STARTING."
+                            </p>
+<span class="text-xs text-muted-text">2H_AGO</span>
+<button class="text-xs text-primary-accent mt-1 hover:underline">CMD:VIEW_ALL_LOGS</button>
+</div>
+</div>
+<div class="h-12"></div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-background-dark/80 px-2 pt-2 pb-4 backdrop-blur-lg pb-safe border-t border-border-metallic-gray">
+<button class="flex h-10 w-full items-center justify-center gap-2 bg-primary-accent px-6 font-bold text-background-dark active:scale-100 transition-none text-sm uppercase">
+                CMD:TASK_COMPLETE
+            </button>
+</div>
+</div>
+</body></html>

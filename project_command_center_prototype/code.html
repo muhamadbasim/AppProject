@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Project Command Center Prototype</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        // Screen 1
+                        "pure-black": "#000000","dark-grey-panel": "#1A1A1A","assertive-gold": "#FFD700","crisp-gold": "#FFEB99","darker-border": "#333333","text-subtle": "#AA8800","text-on-accent": "#1A1A1A",
+                        // Screen 2
+                        "black-pure": "#000000", "gold-primary": "#FFD700", "gold-muted": "#B8860B", "white-crisp": "#FFFFFF", "grey-dark-subtle": "#1A1A1A", "red-priority": "#DC2626", "orange-priority": "#EA580C", "green-success": "#10B981",
+                        // Screen 3
+                        "primary-text": "#FFFACD", "primary-accent": "#FFFF00", "background-dark-pure": "#000000", "border-metallic-gray": "#4A4A4A", "high-priority": "#FFA500", "blocked-status": "#FFD700", "muted-text": "#F0F8FF",
+                        // Screen 4
+                        "primary": "#FFD700", "secondary": "#B8860B", "warning": "#DAA520", "danger": "#FFD700", "background-dark": "#0A0A0A", "surface-dark": "#1A1A1A", "surface-highlight": "#2A2A2A", "border-dark": "#362F1A", "text-light": "#FFD700", "text-muted": "#AA8E4A", "text-on-gold": "#0A0A0A",
+                        // Screen 5
+                        "black-stark": "#000000", "dark-gray-soft": "#1A1A1A", "gray-medium": "#A0A0A0", "gold-vibrant": "#FFD700", "red-vibrant": "#FF4444",
+                    },
+                    fontFamily: {
+                        "mono": ["Fira Code", "IBM Plex Mono", "Roboto Mono", "monospace"],
+                        "display": ["Roboto Condensed", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"],
+                        "heading": ["Playfair Display", "serif"],
+                        "body": ["Open Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "2xl": "1rem", "3xl": "1.5rem" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { min-height: max(884px, 100dvh); }
+        
+        /* Sparkline CSS */
+        .sparkline {
+            display: inline-block; width: 40px; height: 12px; background-color: transparent;
+            border: 1px solid var(--sparkline-border-color, #B8860B);
+            position: relative; overflow: hidden; vertical-align: middle;
+            margin-right: 4px; border-radius: 2px;
+        }
+        .sparkline-fill {
+            position: absolute; bottom: 0; left: 0;
+            background-color: var(--sparkline-fill-color, #B8860B);
+            height: var(--sparkline-height, 0%); width: 100%;
+            transition: height 0.3s ease-out;
+        }
+
+        /* CLI Styles */
+        .cli-section { border-top: 1px solid #4A4A4A; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .cli-section:first-of-type { border-top: none; }
+        .cli-line { display: flex; justify-content: space-between; width: 100%; margin-bottom: 0.25rem; }
+        .cli-label { color: #FFFF00; font-weight: 700; text-transform: uppercase; margin-right: 1rem; flex-shrink: 0; }
+        .cli-value { text-align: right; flex-grow: 1; }
+        .cli-full-line { width: 100%; }
+
+        /* Gantt Styles */
+        .glass-panel { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); }
+        .mini-chart { display: flex; height: 12px; gap: 1px; position: absolute; bottom: 0px; left: 0; right: 0; padding: 0 2px; background: rgba(255,215,0,0.1); }
+        .mini-chart-bar { flex: 1; background: rgba(255,215,0,0.1); height: 100%; border-radius: 1px; transition: height 0.1s ease-out; transform-origin: bottom; }
+        .mini-chart-bar.high { background: #FFD700; }
+        .mini-chart-bar.medium { background: #DAA520; }
+        .mini-chart-bar.low { background: #B8860B; }
+        .gantt-bar-info { display: flex; flex-direction: column; justify-content: center; font-size: 9px; font-weight: 500; line-height: 1; padding: 2px 8px; z-index: 10; }
+        .bottom-sheet-active { transform: translateY(0%); }
+        .bottom-sheet-inactive { transform: translateY(100%); }
+        .sticky-col-shadow { box-shadow: 4px 0 12px rgba(0,0,0,0.5); }
+        .current-time-indicator { background-color: #FFD700; box-shadow: 0 0 8px rgba(255,215,0,0.4); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-pure-black font-mono text-white-crisp antialiased overflow-hidden">
+    <div id="root"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
+
+        // --- Screen 1: Dashboard (Project Command Center) ---
+        const Dashboard = () => {
+            const navigate = useNavigate();
+
+            return (
+                <div className="relative flex min-h-screen w-full flex-col pb-24 mx-auto max-w-md bg-pure-black shadow-2xl overflow-hidden font-mono">
+                    <header className="sticky top-0 z-30 flex items-center justify-between bg-pure-black/95 px-4 py-3 backdrop-blur-sm border-b border-darker-border">
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                                <p className="text-assertive-gold text-xs font-semibold uppercase">STATUS: ONLINE</p>
+                                <h2 className="text-lg font-bold leading-tight tracking-tight text-white-crisp">PM_LEAD@CMD_CTR</h2>
+                            </div>
+                        </div>
+                        <button className="flex size-10 items-center justify-center rounded-sm bg-dark-grey-panel text-crisp-gold hover:bg-darker-border transition-colors">
+                            <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: "'FILL' 0"}}>data_thresholding</span>
+                        </button>
+                    </header>
+                    <div className="w-full px-4 mt-6">
+                        <h3 className="text-xs font-semibold text-assertive-gold uppercase tracking-widest mb-3">SYSTEM_OVERVIEW</h3>
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="flex flex-col justify-between p-3 bg-dark-grey-panel border border-darker-border rounded-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="material-symbols-outlined text-assertive-gold text-xl" style={{fontVariationSettings: "'FILL' 0"}}>developer_mode</span>
+                                    <span className="text-xs text-text-subtle">PRJ_ACT</span>
+                                </div>
+                                <p className="text-3xl font-bold mt-2 text-assertive-gold">12</p>
+                                <p className="text-xs text-text-subtle">Active Projects</p>
+                            </div>
+                            <div className="flex flex-col justify-between p-3 bg-dark-grey-panel border border-darker-border rounded-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="material-symbols-outlined text-assertive-gold text-xl" style={{fontVariationSettings: "'FILL' 0"}}>rate_review</span>
+                                    <span className="text-xs text-text-subtle">REQ_REV</span>
+                                </div>
+                                <p className="text-3xl font-bold mt-2 text-assertive-gold">3</p>
+                                <p className="text-xs text-text-subtle">Pending Review</p>
+                            </div>
+                            <div className="flex flex-col justify-between p-3 bg-dark-grey-panel border border-darker-border rounded-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="material-symbols-outlined text-assertive-gold text-xl" style={{fontVariationSettings: "'FILL' 0"}}>task_alt</span>
+                                    <span className="text-xs text-text-subtle">TSK_CMPLT</span>
+                                </div>
+                                <p className="text-3xl font-bold mt-2 text-assertive-gold">89</p>
+                                <p className="text-xs text-text-subtle">Tasks Completed</p>
+                            </div>
+                            <div className="flex flex-col justify-between p-3 bg-dark-grey-panel border border-darker-border rounded-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="material-symbols-outlined text-assertive-gold text-xl" style={{fontVariationSettings: "'FILL' 0"}}>cloud_sync</span>
+                                    <span className="text-xs text-text-subtle">SYS_LOAD</span>
+                                </div>
+                                <p className="text-3xl font-bold mt-2 text-assertive-gold">42%</p>
+                                <p className="text-xs text-text-subtle">System Load</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-full px-4 mb-4">
+                        <h3 className="text-xs font-semibold text-assertive-gold uppercase tracking-widest mb-3">PROJECT_LOG</h3>
+                        <div className="flex flex-col gap-2">
+                            {[
+                                { id: "001", name: "WEB_REDESIGN_P1", stat: "65%", statusColor: "text-text-subtle", link: "/tasks" },
+                                { id: "002", name: "API_INTEGRATION_MA", stat: "URGENT", statusColor: "text-assertive-gold", link: "/tasks" },
+                                { id: "003", name: "Q4_MKT_CAMPAIGN", stat: "15%", statusColor: "text-text-subtle", link: "/tasks" },
+                                { id: "004", name: "SERVER_MIGRATION_V3", stat: "QA", statusColor: "text-text-subtle", link: "/tasks" },
+                                { id: "005", name: "DOC_SYS_UPDATE_2.0", stat: "CRIT", statusColor: "text-assertive-gold", link: "/tasks" }
+                            ].map((proj) => (
+                                <Link to={proj.link} key={proj.id} className="group flex flex-col rounded-sm bg-dark-grey-panel p-3 border border-darker-border active:scale-[0.99] transition-transform cursor-pointer hover:border-assertive-gold/30">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-assertive-gold">[{proj.id}]</span>
+                                        <span className="flex-1 ml-2 text-crisp-gold font-medium">{proj.name}</span>
+                                        <span className={`${proj.statusColor} text-xs`}>STAT: {proj.stat}</span>
+                                        <span className="material-symbols-outlined text-text-subtle text-base ml-2">expand_more</span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                    <button onClick={() => navigate('/report')} className="fixed bottom-24 right-6 z-40 flex size-14 items-center justify-center rounded-sm bg-assertive-gold shadow-[0_0_20px_rgba(255,215,0,0.4)] text-text-on-accent hover:scale-105 active:scale-95 transition-all">
+                        <span className="material-symbols-outlined text-2xl" style={{fontVariationSettings: "'FILL' 1"}}>terminal</span>
+                    </button>
+                    <nav className="fixed bottom-0 z-50 w-full max-w-md border-t border-darker-border bg-pure-black/90 backdrop-blur-lg pb-safe">
+                        <div className="flex h-16 items-center justify-around px-2">
+                            <Link className="flex flex-col items-center gap-1 p-2 text-assertive-gold" to="/">
+                                <span className="material-symbols-outlined text-2xl" style={{fontVariationSettings: "'FILL' 1"}}>dashboard</span>
+                                <span className="text-xs font-medium">DASH</span>
+                            </Link>
+                            <Link className="flex flex-col items-center gap-1 p-2 text-text-subtle hover:text-assertive-gold" to="/gantt">
+                                <span className="material-symbols-outlined text-2xl">timeline</span>
+                                <span className="text-xs font-medium">SCHED</span>
+                            </Link>
+                            <Link className="flex flex-col items-center gap-1 p-2 text-text-subtle hover:text-assertive-gold relative" to="/summary">
+                                <span className="material-symbols-outlined text-2xl">group</span>
+                                <span className="absolute top-2 right-2 size-2 rounded-full bg-assertive-gold"></span>
+                                <span className="text-xs font-medium">COMMS</span>
+                            </Link>
+                            <a className="flex flex-col items-center gap-1 p-2 text-text-subtle hover:text-assertive-gold" href="#">
+                                <span className="material-symbols-outlined text-2xl">settings</span>
+                                <span className="text-xs font-medium">CONFIG</span>
+                            </a>
+                        </div>
+                        <div className="h-5 w-full"></div>
+                    </nav>
+                </div>
+            );
+        };
+
+        // --- Screen 2: Task List (Project Alpha) ---
+        const TaskList = () => {
+            const navigate = useNavigate();
+            const [tasks, setTasks] = useState([
+                { id: 1, desc: "DESIGN HOMEPAGE", priority: "HIGH", priorityColor: "text-red-priority", tag: "WF-1234", assign: "SARAH (PM)", due: "12", alloc: "8 HRS", prog: 75, checked: false },
+                { id: 2, desc: "FIX API BUG", priority: "MED", priorityColor: "text-orange-priority", tag: "DEV-5678", assign: "MIKE (DEV)", due: "03", alloc: "4 HRS", prog: 20, checked: false },
+                { id: 3, desc: "CONTENT DRAFT", priority: "LOW", priorityColor: "text-gold-muted", tag: "MKT-9012", assign: "YOU (CM)", due: "00", alloc: "2 HRS", prog: 0, checked: false },
+                { id: 4, desc: "REVIEW WIREFRAMES", priority: "", priorityColor: "", tag: "WF-4321", assign: "JESSICA (UX)", due: "01", alloc: "6 HRS", prog: 0, checked: false },
+                { id: 5, desc: "DATABASE SCHEMA", priority: "", priorityColor: "", tag: "DEV-0099", assign: "DAVID (DBA)", due: "-1", alloc: "COMPLETED", prog: 100, checked: true, completed: true },
+                 { id: 6, desc: "IMPLEMENT AUTH", priority: "MED", priorityColor: "text-orange-priority", tag: "DEV-5679", assign: "MIKE (DEV)", due: "05", alloc: "6 HRS", prog: 40, checked: false },
+                 { id: 7, desc: "TEST PAYMENT GATEWAY", priority: "", priorityColor: "", tag: "QA-0010", assign: "CHLOE (QA)", due: "07", alloc: "8 HRS", prog: 10, checked: false },
+                 { id: 8, desc: "DEPLOY TO STAGING", priority: "CRITICAL", priorityColor: "text-red-priority", tag: "OPS-0001", assign: "ADAM (OPS)", due: "02", alloc: "FULL DAY", prog: 60, checked: false },
+                 { id: 9, desc: "FINAL CLIENT REVIEW", priority: "", priorityColor: "", tag: "MGMT-7890", assign: "PROJECT LEAD", due: "20", alloc: "4 HRS", prog: 0, checked: false },
+
+            ]);
+
+            const toggleTask = (id) => {
+                setTasks(tasks.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+            };
+
+            return (
+                <div className="bg-black-pure font-mono antialiased overflow-hidden h-screen flex flex-col text-white-crisp">
+                    <header className="flex items-center justify-between px-4 py-3 shrink-0 bg-grey-dark-subtle z-20 border-b border-grey-dark-subtle">
+                        <button onClick={() => navigate('/')} className="flex size-9 items-center justify-center text-white-crisp rounded hover:bg-gold-muted/20 transition-colors">
+                            <span className="material-symbols-outlined text-xl">arrow_back_ios_new</span>
+                        </button>
+                        <div className="flex flex-col items-center flex-1 mx-2">
+                            <h1 className="text-white-crisp text-sm font-semibold leading-tight tracking-tight text-center uppercase">PROJECT ALPHA</h1>
+                            <span className="text-gold-muted text-xs font-normal">Website Redesign (PCC-001)</span>
+                        </div>
+                        <button className="flex size-9 items-center justify-center text-white-crisp rounded hover:bg-gold-muted/20 transition-colors">
+                            <span className="material-symbols-outlined text-xl">more_vert</span>
+                        </button>
+                    </header>
+                    <div className="px-4 py-2 shrink-0 bg-grey-dark-subtle border-b border-grey-dark-subtle">
+                        <label className="flex flex-col h-10 w-full">
+                            <div className="flex w-full flex-1 items-center rounded bg-black-pure border border-grey-dark-subtle focus-within:border-gold-primary/50 overflow-hidden shadow-sm">
+                                <div className="text-gold-muted flex items-center justify-center pl-3 pr-2">
+                                    <span className="material-symbols-outlined text-lg">search</span>
+                                </div>
+                                <input className="flex w-full min-w-0 flex-1 bg-transparent text-white-crisp placeholder:text-gold-muted px-2 text-sm font-normal focus:outline-none border-none focus:ring-0 h-full" placeholder="SEARCH TASKS / COMMANDS..."/>
+                            </div>
+                        </label>
+                    </div>
+                    <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar shrink-0 bg-grey-dark-subtle border-b border-grey-dark-subtle">
+                        <button className="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded bg-gold-primary px-3 border border-transparent shadow-sm shadow-gold-primary/20">
+                            <p className="text-black-pure text-xs font-semibold uppercase">ACTIVE</p>
+                            <span className="material-symbols-outlined text-black-pure text-base">keyboard_arrow_down</span>
+                        </button>
+                        <button className="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded bg-black-pure border border-grey-dark-subtle px-3 hover:bg-grey-dark-subtle transition-colors">
+                            <p className="text-gold-muted text-xs font-normal uppercase">MY TASKS</p>
+                        </button>
+                        <button className="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded bg-black-pure border border-grey-dark-subtle px-3 hover:bg-grey-dark-subtle transition-colors">
+                            <p className="text-gold-muted text-xs font-normal uppercase">PRIORITY</p>
+                            <span className="material-symbols-outlined text-gold-muted text-base">filter_list</span>
+                        </button>
+                         <button className="flex h-7 shrink-0 items-center justify-center gap-x-1 rounded bg-black-pure border border-grey-dark-subtle px-3 hover:bg-grey-dark-subtle transition-colors">
+                            <p className="text-gold-muted text-xs font-normal uppercase">DUE DATE</p>
+                            <span className="material-symbols-outlined text-gold-muted text-base">sort</span>
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar px-2 pt-1 pb-24 bg-black-pure">
+                        <div className="grid grid-cols-[16px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] gap-x-2 py-2 px-2 border-b border-grey-dark-subtle sticky top-0 bg-black-pure z-10 text-gold-muted text-[10px] uppercase font-bold">
+                            <div className="flex items-center justify-center"><span className="material-symbols-outlined text-xs">check_box_outline_blank</span></div>
+                            <div className="flex items-center">TASK DESCRIPTION</div>
+                            <div className="flex items-center">ASSIGNED TO</div>
+                            <div className="flex items-center justify-end">DUE (DAYS)</div>
+                            <div className="flex items-center">ALLOCATION</div>
+                            <div className="flex items-center">PROGRESS</div>
+                        </div>
+                        <div className="space-y-px">
+                            {tasks.map(task => (
+                                <div key={task.id} className={`grid grid-cols-[16px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] gap-x-2 py-2 px-2 bg-grey-dark-subtle border border-grey-dark-subtle rounded-sm hover:bg-gold-muted/10 transition-colors active:scale-[0.99] duration-150 group ${task.completed ? 'opacity-60' : ''}`}>
+                                    <div className="flex items-center justify-center">
+                                        <input 
+                                            checked={task.checked} 
+                                            onChange={() => toggleTask(task.id)}
+                                            className="peer size-4 rounded border border-gold-muted bg-transparent text-gold-primary checked:bg-gold-primary checked:border-gold-primary focus:ring-0 focus:ring-offset-0 transition-all cursor-pointer" type="checkbox"/>
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <p className={`text-white-crisp text-xs font-medium leading-tight truncate ${task.completed ? 'text-gold-muted line-through' : ''}`}>
+                                            {task.desc} {task.priority && <span className={`${task.priorityColor} font-bold ml-1 text-[10px]`}>[{task.priority}]</span>}
+                                        </p>
+                                        <p className="text-gold-muted text-[10px] mt-0.5 truncate">TASK ID: {task.tag}</p>
+                                    </div>
+                                    <div className="flex items-center text-gold-muted text-xs truncate">{task.assign}</div>
+                                    <div className={`flex items-center justify-end ${task.due == '00' ? 'text-red-priority' : 'text-gold-primary'} text-xs font-bold tabular-nums`}>{task.due}</div>
+                                    <div className="flex items-center text-gold-muted text-xs">{task.alloc}</div>
+                                    <div className="flex items-center text-gold-muted text-xs relative">
+                                        <div className="sparkline" style={{"--sparkline-height": `${task.prog}%`, "--sparkline-border-color": task.prog === 100 ? "var(--green-success)" : "var(--gold-primary)", "--sparkline-fill-color": task.prog === 100 ? "var(--green-success)" : "var(--gold-primary)"}}>
+                                            <div className="sparkline-fill"></div>
+                                        </div>
+                                        <span className={`text-${task.completed ? 'gold-muted' : 'white-crisp'} font-medium tabular-nums text-[10px]`}>{task.prog}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <button className="fixed bottom-24 right-5 z-40 flex size-12 items-center justify-center rounded-sm bg-gold-primary text-black-pure shadow-lg shadow-gold-primary/30 hover:scale-105 active:scale-95 transition-transform duration-200">
+                        <span className="material-symbols-outlined text-2xl font-medium">add</span>
+                    </button>
+                    <nav className="fixed bottom-0 w-full z-30 bg-grey-dark-subtle/95 backdrop-blur-md border-t border-grey-dark-subtle pb-safe">
+                        <div className="flex items-center justify-around h-[56px] pb-1">
+                            <Link to="/" className="flex flex-col items-center justify-center w-full h-full gap-1 text-gold-muted hover:text-white-crisp transition-colors">
+                                <span className="material-symbols-outlined text-xl">grid_on</span>
+                                <span className="text-[10px] font-medium uppercase">COMMAND</span>
+                            </Link>
+                            <Link to="/tasks" className="flex flex-col items-center justify-center w-full h-full gap-1 text-gold-primary">
+                                <span className="material-symbols-outlined text-xl">view_column</span>
+                                <span className="text-[10px] font-medium uppercase">BOARD</span>
+                            </Link>
+                            <Link to="/gantt" className="flex flex-col items-center justify-center w-full h-full gap-1 text-gold-muted hover:text-white-crisp transition-colors">
+                                <span className="material-symbols-outlined text-xl">timeline</span>
+                                <span className="text-[10px] font-medium uppercase">TIMELINE</span>
+                            </Link>
+                            <button className="flex flex-col items-center justify-center w-full h-full gap-1 text-gold-muted hover:text-white-crisp transition-colors">
+                                <span className="material-symbols-outlined text-xl">account_circle</span>
+                                <span className="text-[10px] font-medium uppercase">PROFILE</span>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            );
+        };
+
+        // --- Screen 3: System Report ---
+        const Report = () => {
+             const navigate = useNavigate();
+
+            return (
+                <div className="bg-background-dark-pure font-mono text-primary-text antialiased overflow-x-hidden p-0 m-0 min-h-screen">
+                    <div className="relative flex min-h-screen w-full flex-col">
+                        <header className="flex items-center justify-between bg-background-dark-pure px-2 py-2 border-b border-border-metallic-gray sticky top-0 z-50">
+                            <button onClick={() => navigate('/')} className="text-primary-text hover:text-primary-accent active:scale-100 transition-none p-0 m-0">
+                                <span className="text-primary-accent">CMD:BACK</span>
+                            </button>
+                            <h2 className="text-sm font-bold tracking-tight text-primary-text">SYSTEM REPORT: PROJ-123</h2>
+                            <button className="text-primary-text hover:text-primary-accent active:scale-100 transition-none p-0 m-0">
+                                <span className="text-primary-accent">OPTN:MENU</span>
+                            </button>
+                        </header>
+                        <main className="flex flex-col gap-0 p-2 pt-0">
+                            <div className="cli-section pb-2">
+                                <h1 className="text-lg font-bold leading-tight tracking-tight text-primary-accent mt-2 mb-2">REF: USER_AUTH_API</h1>
+                            </div>
+                            <div className="cli-section">
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <span className="text-background-dark-pure bg-primary-accent px-1 py-0 text-xs font-bold uppercase">STATUS: IN_PROGRESS</span>
+                                    <span className="text-primary-text bg-border-metallic-gray px-1 py-0 text-xs font-bold uppercase">TYPE: BACKEND</span>
+                                </div>
+                            </div>
+                            <div className="cli-section">
+                                <div className="cli-line">
+                                    <span className="cli-label">PROG</span>
+                                    <span className="cli-value text-primary-accent">65% [ON_TRACK]</span>
+                                </div>
+                                <div className="h-2 w-full bg-border-metallic-gray flex items-center justify-start overflow-hidden my-1">
+                                    <div className="h-full bg-primary-accent" style={{width: "65%"}}></div>
+                                </div>
+                            </div>
+                            <div className="cli-section">
+                                <div className="cli-line">
+                                    <span className="cli-label">ASSG</span>
+                                    <span className="cli-value">JANE_DOE</span>
+                                </div>
+                                <div className="cli-line">
+                                    <span className="cli-label">DUE</span>
+                                    <span className="cli-value">OCT_24 (2D)</span>
+                                </div>
+                                <div className="cli-line">
+                                    <span className="cli-label">PRIO</span>
+                                    <span className="cli-value text-high-priority font-bold">HIGH</span>
+                                </div>
+                            </div>
+                            <div className="cli-section">
+                                <div className="cli-line mb-1">
+                                    <span className="cli-label">DESC</span>
+                                    <span className="cli-value"></span>
+                                </div>
+                                <div className="cli-full-line pl-4 text-primary-text overflow-auto max-h-24">
+                                    <p className="text-xs">
+                                        REWRITE AUTHENTICATION MIDDLEWARE TO SUPPORT JWT_TOKENS. INCLUDES UPDATING USER_SCHEMA, IMPLEMENTING TOKEN_REFRESH_LOGIC, AND ENSURING BACKWARD_COMPATIBILITY WITH LEGACY SESSION-BASED_AUTH_SYSTEM.
+                                    </p>
+                                    <button className="text-xs text-primary-accent mt-1 hover:underline">CMD:MORE_INFO</button>
+                                </div>
+                            </div>
+                            <div className="cli-section">
+                                <div className="cli-line mb-1">
+                                    <span className="cli-label">DEPS</span>
+                                    <span className="cli-value"></span>
+                                </div>
+                                <div className="cli-full-line pl-4 text-primary-text border-l border-primary-accent pt-1 pb-1">
+                                    <span className="text-xs text-blocked-status font-bold block">BLOCKED_BY: PROJ-40</span>
+                                    <span className="text-xs block">DATABASE SCHEMA UPDATE</span>
+                                    <button className="text-xs text-primary-accent mt-1 hover:underline">CMD:VIEW_DEP</button>
+                                </div>
+                            </div>
+                             <div className="cli-section">
+                                <div className="cli-line">
+                                    <span className="cli-label">SPNT</span>
+                                    <span className="cli-value">$2500</span>
+                                </div>
+                                <div className="cli-line">
+                                    <span className="cli-label">ALLOC</span>
+                                    <span className="cli-value">$5000</span>
+                                </div>
+                                <div className="h-2 w-full bg-border-metallic-gray flex items-center justify-start overflow-hidden my-1 relative">
+                                    <div className="h-full bg-primary-accent" style={{width: "50%"}}></div>
+                                    <div className="absolute right-0 top-0 h-full w-0.5 bg-high-priority opacity-50"></div>
+                                </div>
+                                <div className="flex justify-between text-xs font-medium text-muted-text">
+                                    <span>50% USED</span>
+                                    <span>100% CAP</span>
+                                </div>
+                            </div>
+                             <div className="cli-section">
+                                <div className="cli-line mb-1">
+                                    <span className="cli-label">LOGS</span>
+                                    <span className="cli-value"></span>
+                                </div>
+                                <div className="cli-full-line pl-4 text-primary-text pt-1 pb-1">
+                                    <p className="text-xs">
+                                        <span className="text-primary-accent font-bold">ALEX_M:</span> "CHECK NEW ENDPOINT_SPECS BEFORE STARTING."
+                                    </p>
+                                    <span className="text-xs text-muted-text">2H_AGO</span>
+                                    <button className="text-xs text-primary-accent mt-1 hover:underline">CMD:VIEW_ALL_LOGS</button>
+                                </div>
+                            </div>
+                            <div className="h-12"></div>
+                        </main>
+                        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background-dark-pure/80 px-2 pt-2 pb-4 backdrop-blur-lg pb-safe border-t border-border-metallic-gray">
+                            <button onClick={() => navigate('/tasks')} className="flex h-10 w-full items-center justify-center gap-2 bg-primary-accent px-6 font-bold text-background-dark-pure active:scale-100 transition-none text-sm uppercase">
+                                CMD:TASK_COMPLETE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 4: Gantt Chart ---
+        const Gantt = () => {
+            const navigate = useNavigate();
+            const [viewMode, setViewMode] = useState("Week");
+            const [showDetails, setShowDetails] = useState(false);
+
+            useEffect(() => {
+                // Auto show details after 1s to simulate effect in original screen
+                const timer = setTimeout(() => setShowDetails(true), 1000);
+                return () => clearTimeout(timer);
+            }, []);
+
+            return (
+                <div className="bg-background-dark font-display text-text-light h-screen flex flex-col overflow-hidden">
+                    <header className="flex items-center justify-between p-4 bg-background-dark z-20 shadow-lg shadow-black/40 shrink-0">
+                        <button onClick={() => navigate('/tasks')} className="text-text-light flex size-10 shrink-0 items-center justify-center rounded-full active:bg-surface-highlight transition-colors">
+                            <span className="material-symbols-outlined">arrow_back</span>
+                        </button>
+                        <div className="text-center flex-1 px-2">
+                            <h1 className="text-lg font-bold leading-tight text-primary">Project Control Center</h1>
+                            <p className="text-[10px] text-text-muted uppercase tracking-widest">Real-time Project Overview</p>
+                        </div>
+                        <div className="flex w-10 items-center justify-end">
+                            <button className="flex size-10 items-center justify-center rounded-full active:bg-surface-highlight transition-colors text-text-light">
+                                <span className="material-symbols-outlined">more_horiz</span>
+                            </button>
+                        </div>
+                    </header>
+                    <div className="px-3 py-2 bg-background-dark z-20 shrink-0 border-b border-border-dark">
+                        <div className="flex h-9 w-full items-center justify-center rounded-lg bg-surface-dark p-1">
+                            {['Day', 'Week', 'Month'].map(mode => (
+                                <label key={mode} className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all hover:bg-surface-highlight text-text-muted text-xs font-semibold ${viewMode === mode ? 'bg-primary shadow-sm text-text-on-gold' : ''}`}>
+                                    <span className="truncate">{mode}</span>
+                                    <input className="invisible w-0 absolute" type="radio" checked={viewMode === mode} onChange={() => setViewMode(mode)} />
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                     <div className="flex overflow-x-auto no-scrollbar bg-background-dark border-b border-border-dark shrink-0 pl-[220px]">
+                        <div className="flex min-w-max">
+                            <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Mon</span>
+                                <span className="text-sm font-bold text-text-light">16</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-primary/10">
+                                <span className="text-[9px] font-medium text-primary uppercase">Tue</span>
+                                <div className="size-5 bg-primary rounded-full flex items-center justify-center mt-0.5">
+                                    <span className="text-xs font-bold text-text-on-gold">17</span>
+                                </div>
+                            </div>
+                             <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Wed</span>
+                                <span className="text-sm font-bold text-text-light">18</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Thu</span>
+                                <span className="text-sm font-bold text-text-light">19</span>
+                            </div>
+                             <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Fri</span>
+                                <span className="text-sm font-bold text-text-light">20</span>
+                            </div>
+                             <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-surface-dark/50 opacity-70">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Sat</span>
+                                <span className="text-sm font-bold text-text-muted">21</span>
+                            </div>
+                             <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50 bg-surface-dark/50 opacity-70">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Sun</span>
+                                <span className="text-sm font-bold text-text-muted">22</span>
+                            </div>
+                             <div className="flex flex-col items-center justify-center w-[70px] h-12 border-r border-dashed border-border-dark/50">
+                                <span className="text-[9px] font-medium text-text-muted uppercase">Mon</span>
+                                <span className="text-sm font-bold text-text-light">23</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto overflow-x-auto relative bg-background-dark" id="gantt-container">
+                        <div className="absolute top-0 bottom-0 left-[295px] w-px current-time-indicator z-10 pointer-events-none"></div>
+                        <div className="min-w-max pb-24">
+                             {/* Row 1 */}
+                             <div className="flex items-stretch h-20 group">
+                                <div className="sticky left-0 w-[220px] bg-background-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBcr0kA75mJNq_BBJwZXZAMXl99uaw1oOTO-ivZcTUweOtM9xxiMBekqEBGBj6XQEcdGbyUCgGjqE97rPgg259DygfgbOW3R7DoVcVx65Bmouh_YsW0b1GdHa8rbfHK3EkbI3m5lrKh5AHRgXLO0cTHqGlQjUfo3Nf3hvts63S0zwemStbJRuIpwvOhyKOYAb2QHfm4WiK9Gr12JdR12aAtsQLPUAQDI_4R5kRcgUkNSZ3xlukqEZ2wQhy9qOX-A0uBzJgKGas8wAOa')"}}></div>
+                                        <div className="flex flex-col overflow-hidden leading-tight">
+                                            <span className="text-xs font-bold truncate text-text-light">UX Research</span>
+                                            <span className="text-[10px] text-secondary">Done</span>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+                                        <div className="flex items-center gap-1"><span className="material-symbols-outlined text-danger text-xs !leading-none">attach_money</span><span className="text-danger bg-danger text-text-on-gold px-1 rounded">($1.2K (+$200)</span></div>
+                                        <div className="flex items-center gap-1"><span className="material-symbols-outlined text-warning text-xs !leading-none">priority_high</span><span className="text-warning">Risk: Med</span></div>
+                                    </div>
+                                </div>
+                                <div className="flex relative border-b border-border-dark pl-2">
+                                     <div className="relative h-full flex items-center">
+                                        <div className="h-14 rounded-md bg-secondary/20 w-[130px] flex flex-col justify-between relative overflow-hidden ring-1 ring-secondary/40 shadow-lg shadow-secondary/10">
+                                            <div className="absolute inset-y-0 left-0 bg-secondary w-full opacity-30"></div>
+                                            <div className="gantt-bar-info text-secondary">
+                                                <span className="font-bold">100% Complete</span>
+                                                <span>Budget: $1.2K</span>
+                                            </div>
+                                            <div className="mini-chart px-0.5">
+                                                <div className="mini-chart-bar low h-[80%]"></div>
+                                                <div className="mini-chart-bar low h-[90%]"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+
+                             {/* Row 2 */}
+                             <div className="flex items-stretch h-20 group bg-surface-dark" onClick={() => setShowDetails(true)}>
+                                <div className="sticky left-0 w-[220px] bg-surface-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuD7D4mRU7c9QoNynHl2jWtsELAzLhMGia0MnYO9TRhBluUaT3gziYprJbZXKa94ESfFM7RHtJOUX4s1iIMuNGIVMeezq0G4g16xR6BPQXD82FmnZErhMBtC1bopz6N303_EHp9xxdjLj6EmpCkF2sQBfwwRQNaPMqDSTvE-J8sQDpaBF6rVMX0UQ-HeDMhev7H303VhGaH4n6MZq5AXzVw3Mo-mwu887gfPu0i20KVtY7AaYABw_l_9GUp1_pmCVNpGuG0tsGHXoEur')"}}></div>
+                                        <div className="flex flex-col overflow-hidden leading-tight">
+                                            <span className="text-xs font-bold truncate text-text-light">Design Phase</span>
+                                            <span className="text-[10px] text-primary">In Progress</span>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9">
+                                        <div className="flex items-center gap-1"><span className="material-symbols-outlined text-text-muted text-xs !leading-none">attach_money</span><span>$2.5K / $2.8K</span></div>
+                                        <div className="flex items-center gap-1"><span className="material-symbols-outlined text-warning text-xs !leading-none">priority_high</span><span className="text-warning">Risk: Med</span></div>
+                                    </div>
+                                </div>
+                                <div className="flex relative border-b border-border-dark pl-[180px]">
+                                    <div className="relative h-full flex items-center">
+                                        <div className="h-14 rounded-md bg-primary/20 w-[180px] flex flex-col justify-between relative overflow-hidden border border-primary/60 shadow-lg shadow-primary/10 cursor-pointer">
+                                            <div className="absolute inset-y-0 left-0 bg-primary w-[45%] opacity-30"></div>
+                                            <div className="gantt-bar-info text-primary">
+                                                <span className="font-bold">45% Complete</span>
+                                                <span>Risk Score: Medium</span>
+                                                <span>Due: Oct 20</span>
+                                            </div>
+                                            <div className="mini-chart px-0.5">
+                                                <div className="mini-chart-bar medium h-[60%]"></div>
+                                                <div className="mini-chart-bar medium h-[75%]"></div>
+                                                <div className="mini-chart-bar high h-[85%]"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+
+                             {/* Row 3 */}
+                              <div className="flex items-stretch h-20 group">
+                                <div className="sticky left-0 w-[220px] bg-background-dark border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 sticky-col-shadow">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="size-7 rounded-full bg-surface-highlight shrink-0 flex items-center justify-center text-xs font-bold text-text-light border border-white/10">DT</div>
+                                        <div className="flex flex-col overflow-hidden leading-tight">
+                                            <span className="text-xs font-bold truncate text-text-light">API Dev</span>
+                                            <span className="text-[10px] text-text-muted">Pending</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex relative border-b border-border-dark pl-[365px]">
+                                    <div className="relative h-full flex items-center">
+                                        <div className="h-14 rounded-md bg-surface-highlight w-[140px] flex flex-col justify-between relative overflow-hidden border border-dashed border-text-muted/50">
+                                            <div className="gantt-bar-info text-text-muted">
+                                                <span className="font-bold">Est 4 Days</span>
+                                                <span>Risk: High</span>
+                                            </div>
+                                            <div className="mini-chart px-0.5">
+                                                 <div className="mini-chart-bar h-[30%]"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* Bottom Toolbar */}
+                    <div className="bg-surface-dark border-t border-border-dark shrink-0 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+                        <div className="grid grid-cols-4 gap-1 p-2">
+                             <button className="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+                                <span className="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">filter_list</span>
+                                <span className="text-[10px] font-medium text-text-muted">Filter</span>
+                            </button>
+                             <button onClick={() => navigate('/summary')} className="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+                                <span className="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">insights</span>
+                                <span className="text-[10px] font-medium text-text-muted">Analytics</span>
+                            </button>
+                             <button className="flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-surface-highlight group">
+                                <span className="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors text-xl">calendar_month</span>
+                                <span className="text-[10px] font-medium text-text-muted">Schedule</span>
+                            </button>
+                             <button className="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 group">
+                                <span className="material-symbols-outlined text-primary group-hover:text-primary transition-colors text-xl">add_circle</span>
+                                <span className="text-[10px] font-bold text-primary">New Task</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Bottom Sheet */}
+                    <div className={`absolute inset-x-0 bottom-0 z-40 transform transition-transform duration-300 ease-out shadow-[0_-8px_30px_rgba(0,0,0,0.5)] bg-surface-dark rounded-t-3xl border-t border-border-dark max-h-[55vh] overflow-y-auto ${showDetails ? 'bottom-sheet-active' : 'bottom-sheet-inactive'}`}>
+                        <div className="sticky top-0 bg-surface-dark py-3 flex justify-center z-10" onClick={() => setShowDetails(false)}>
+                            <div className="w-12 h-1.5 rounded-full bg-text-muted/30"></div>
+                        </div>
+                        <div className="px-6 pb-8">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/20 text-primary">In Progress</span>
+                                        <span className="text-text-muted text-xs">Oct 16 - Oct 20</span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-text-light">Design Phase</h3>
+                                    <p className="text-sm text-text-muted">Lead: Sarah J.</p>
+                                </div>
+                                <button className="size-8 flex items-center justify-center rounded-full bg-surface-highlight text-text-light">
+                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="bg-background-dark rounded-xl p-3 border border-border-dark">
+                                    <p className="text-xs text-text-muted mb-1">Budget Status</p>
+                                    <p className="text-lg font-bold text-primary">$2.5K / <span className="text-text-muted">$2.8K</span></p>
+                                </div>
+                                <div className="bg-background-dark rounded-xl p-3 border border-border-dark">
+                                    <p className="text-xs text-text-muted mb-1">Risk Score</p>
+                                    <p className="text-lg font-bold text-warning">Medium</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button className="flex items-center justify-center gap-2 h-12 rounded-lg bg-background-dark text-text-light text-sm font-semibold hover:bg-surface-highlight transition-colors border border-border-dark">
+                                    <span className="material-symbols-outlined text-lg">chat</span>
+                                    Discussions
+                                </button>
+                                <button className="flex items-center justify-center gap-2 h-12 rounded-lg bg-background-dark text-text-light text-sm font-semibold hover:bg-surface-highlight transition-colors border border-border-dark">
+                                    <span className="material-symbols-outlined text-lg">attachment</span>
+                                    Documents
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 5: Executive Summary ---
+        const Summary = () => {
+             const navigate = useNavigate();
+
+             return (
+                 <div className="bg-black-stark font-body text-white-crisp antialiased h-screen flex flex-col">
+                    <div className="flex-none flex items-center bg-black-stark px-6 py-4 justify-between border-b border-white-crisp/10 z-20">
+                        <button onClick={() => navigate('/gantt')} className="text-white-crisp flex size-10 shrink-0 items-center justify-start cursor-pointer transition-opacity hover:opacity-70">
+                            <span className="material-symbols-outlined" style={{fontSize: "24px"}}>arrow_back</span>
+                        </button>
+                        <div className="flex flex-col items-center flex-1">
+                            <h1 className="text-white-crisp text-xl font-heading font-bold leading-tight tracking-[-0.015em]">Executive Summary</h1>
+                            <span className="text-xs text-gray-medium font-body font-light">Project Alpha Launch - Q4</span>
+                        </div>
+                        <div className="flex w-10 items-center justify-end"></div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto relative flex flex-col p-6 space-y-8">
+                        <div className="bg-dark-gray-soft p-6 rounded-xl border border-white-crisp/10 shadow-sm">
+                            <h2 className="font-heading text-lg font-bold text-white-crisp mb-3">Project Status</h2>
+                            <p className="font-body text-sm font-light leading-relaxed text-white-crisp/90 mb-4">
+                                The Alpha Launch project is progressing efficiently, with key development milestones on track. We are currently in the primary development sprint, focusing on core frontend functionalities.
+                            </p>
+                            <div className="flex items-center gap-2 text-gold-vibrant">
+                                <span className="material-symbols-outlined text-base">info</span>
+                                <span className="font-body text-xs font-medium">Updated: Oct 23, 2024</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-dark-gray-soft p-6 rounded-xl border border-white-crisp/10 shadow-sm">
+                            <h2 className="font-heading text-lg font-bold text-white-crisp mb-4">Key Milestones</h2>
+                            <div className="grid grid-cols-[30px_1fr] gap-x-4">
+                                <div className="flex flex-col items-center gap-2 pt-1">
+                                    <div className="text-gray-medium bg-dark-gray-soft p-2 rounded-full border border-gray-medium/30">
+                                        <span className="material-symbols-outlined text-[16px]">design_services</span>
+                                    </div>
+                                    <div className="w-px bg-white-crisp/10 h-full grow rounded-full"></div>
+                                </div>
+                                <div className="flex flex-1 flex-col py-1 pb-6 opacity-80">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className="font-body text-base font-medium leading-normal text-white-crisp line-through opacity-70">Design Phase Complete</p>
+                                        <span className="text-xs bg-dark-gray-soft text-gray-medium px-2 py-0.5 rounded-full font-body font-light">Done</span>
+                                    </div>
+                                    <p className="font-body text-sm font-light leading-normal text-gray-medium">Oct 1 - Oct 15</p>
+                                </div>
+
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-px bg-gold-vibrant h-2 rounded-full"></div>
+                                    <div className="text-black-stark bg-gold-vibrant p-2 rounded-full shadow-lg shadow-gold-vibrant/20 relative z-10">
+                                        <span className="material-symbols-outlined text-[16px]">code</span>
+                                    </div>
+                                    <div className="w-px bg-gold-vibrant h-full grow rounded-full"></div>
+                                </div>
+                                <div className="flex flex-1 flex-col py-1 pb-6">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className="font-body text-base font-bold leading-normal text-white-crisp">Development Sprint 1</p>
+                                        <span className="text-xs bg-gold-vibrant text-black-stark px-2 py-0.5 rounded-full font-body font-bold animate-pulse">Active</span>
+                                    </div>
+                                    <p className="font-body text-sm font-medium leading-normal text-gold-vibrant">Oct 16 - Oct 30</p>
+                                    <div className="mt-4 bg-black-stark p-4 rounded-lg border border-white-crisp/10 shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-body text-sm font-semibold leading-tight text-white-crisp">Frontend Implementation</p>
+                                            <span className="font-body text-xs font-bold text-gold-vibrant">75% Complete</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex flex-col items-center gap-2 pb-3">
+                                    <div className="w-px bg-white-crisp/10 h-2 rounded-full"></div>
+                                    <div className="text-gray-medium bg-dark-gray-soft p-2 rounded-full border border-dashed border-gray-medium/40">
+                                        <span className="material-symbols-outlined text-[16px]">bug_report</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-1 flex-col py-1 opacity-60">
+                                    <p className="font-body text-base font-medium leading-normal text-white-crisp/80">QA Testing Phase</p>
+                                    <p className="font-body text-sm font-light leading-normal text-gray-medium mt-1">Nov 1 - Nov 14</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+             )
+        }
+
+        // --- App Wrapper ---
+        const App = () => {
+            return (
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/tasks" element={<TaskList />} />
+                        <Route path="/report" element={<Report />} />
+                        <Route path="/gantt" element={<Gantt />} />
+                        <Route path="/summary" element={<Summary />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
