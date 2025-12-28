@@ -6,8 +6,16 @@ A high-performance Project Management PWA built with **Bun**, **Hono**, and **Sv
 
 - **Gantt Chart**: Interactive timeline visualization with task dependencies.
 - **Task List**: Sortable and filterable task management.
-- **Dashboard**: (Coming soon) High-level project metrics.
-- **Timeline View**: (Coming soon) Milestone and phase visualization.
+- **Dashboard**: High-level project metrics and logs.
+- **Timeline View**: Milestone and phase visualization with risk tracking.
+
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [**System Architecture**](docs/ARCHITECTURE.md) - Tech stack, directory structure, and data flow.
+- [**Component Reference**](docs/COMPONENTS.md) - Details on Svelte components and views.
+- [**API Documentation**](docs/API.md) - API endpoints and usage.
 
 ## Tech Stack
 
