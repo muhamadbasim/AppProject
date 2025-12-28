@@ -1,11 +1,48 @@
 <script>
   import { tasks, days } from "../data.js";
 
-  // Constants for layout
-  const COL_WIDTH = 60;
+  // View mode state
+  let viewMode = "day"; // day, week, month
+  const viewModes = [
+    { id: "day", label: "DAY", colWidth: 60 },
+    { id: "week", label: "WEEK", colWidth: 120 },
+    { id: "month", label: "MONTH", colWidth: 200 },
+  ];
+
+  // Dynamic column width based on view mode
+  $: currentView = viewModes.find((v) => v.id === viewMode);
+  $: COL_WIDTH = currentView?.colWidth || 60;
+
   const SIDEBAR_WIDTH = 160;
+  const ROW_HEIGHT = 80;
 
   export let onTaskClick = null;
+
+  // Calculate dependency arrow positions
+  function getDependencyArrows() {
+    const arrows = [];
+    tasks.forEach((task, index) => {
+      if (task.dependsOn) {
+        const fromTask = tasks.find((t) => t.id === task.dependsOn);
+        if (fromTask) {
+          const fromIndex = tasks.indexOf(fromTask);
+          // Arrow starts from end of 'from' task bar
+          const fromX =
+            SIDEBAR_WIDTH +
+            (fromTask.startDay + fromTask.duration) * COL_WIDTH -
+            10;
+          const fromY = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+          // Arrow ends at start of 'to' task bar
+          const toX = SIDEBAR_WIDTH + task.startDay * COL_WIDTH + 10;
+          const toY = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+          arrows.push({ fromX, fromY, toX, toY, fromTask, toTask: task });
+        }
+      }
+    });
+    return arrows;
+  }
+
+  $: dependencyArrows = getDependencyArrows();
 
   function handleTaskClick(task) {
     const detailedTask = {
@@ -18,7 +55,7 @@
       dueDate: `${task.duration}D`,
       priority: task.onTrack ? "MEDIUM" : "HIGH",
       description: `Project: ${task.name}. Budget: $${task.budget}. Status: ${task.status}. ${task.onTrack ? "On track" : "Needs attention"}.`,
-      blockedBy: null,
+      blockedBy: task.dependsOn ? `GANTT-${task.dependsOn}` : null,
       spent: Math.round((task.progress / 100) * task.budget),
       allocated: task.budget,
       logs: [],
@@ -29,6 +66,27 @@
   }
 </script>
 
+<!-- View Toggle Header -->
+<div
+  class="flex items-center justify-between px-4 py-2 bg-surface-dark border-b border-border-dark"
+>
+  <span class="text-xs font-bold text-text-muted uppercase">View Mode:</span>
+  <div class="flex gap-1">
+    {#each viewModes as mode}
+      <button
+        onclick={() => (viewMode = mode.id)}
+        class="px-3 py-1 text-[10px] font-bold uppercase rounded border transition-colors
+          {viewMode === mode.id
+          ? 'bg-primary text-background-dark border-primary'
+          : 'bg-background-dark text-text-muted border-border-dark hover:border-primary/50'}"
+      >
+        {mode.label}
+      </button>
+    {/each}
+  </div>
+</div>
+
+<!-- Day Headers -->
 <div
   class="flex overflow-x-auto no-scrollbar bg-background-dark border-b border-border-dark shrink-0 pl-[{SIDEBAR_WIDTH}px]"
 >
@@ -62,10 +120,45 @@
   </div>
 </div>
 
+<!-- Gantt Body -->
 <div
   class="flex-1 overflow-y-auto overflow-x-auto relative bg-background-dark"
   id="gantt-container"
 >
+  <!-- SVG Layer for Dependency Arrows -->
+  <svg
+    class="absolute inset-0 w-full h-full pointer-events-none z-20"
+    style="min-width: {SIDEBAR_WIDTH +
+      days.length * COL_WIDTH}px; min-height: {tasks.length * ROW_HEIGHT +
+      64}px;"
+  >
+    <defs>
+      <marker
+        id="arrowhead"
+        markerWidth="8"
+        markerHeight="6"
+        refX="8"
+        refY="3"
+        orient="auto"
+      >
+        <polygon points="0 0, 8 3, 0 6" fill="#FFD700" />
+      </marker>
+    </defs>
+    {#each dependencyArrows as arrow}
+      <path
+        d="M {arrow.fromX} {arrow.fromY} 
+           C {arrow.fromX + 20} {arrow.fromY}, 
+             {arrow.toX - 20} {arrow.toY}, 
+             {arrow.toX} {arrow.toY}"
+        fill="none"
+        stroke="#FFD700"
+        stroke-width="2"
+        stroke-opacity="0.6"
+        marker-end="url(#arrowhead)"
+      />
+    {/each}
+  </svg>
+
   <!-- Current Time Indicator -->
   <div
     class="absolute top-0 bottom-0 left-[{SIDEBAR_WIDTH +
@@ -114,10 +207,15 @@
           <div
             class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9"
           >
-            <!-- Simplified details for now -->
             <div class="flex items-center gap-1">
               <span>{task.budget}</span>
             </div>
+            {#if task.dependsOn}
+              <div class="flex items-center gap-1 text-primary">
+                <span class="material-symbols-outlined text-[10px]">link</span>
+                <span>#{task.dependsOn}</span>
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -137,7 +235,6 @@
             class="relative h-full flex items-center"
             style="padding-left: {task.startDay * COL_WIDTH}px;"
           >
-            <!-- Bar Width = duration * COL_WIDTH (minus some padding perhaps) -->
             <div
               class="h-14 rounded-md flex flex-col justify-between relative overflow-hidden shadow-lg {task.color ===
               'secondary'

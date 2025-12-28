@@ -12,7 +12,8 @@ export const tasks = [
         progress: 100,
         startDay: 0,
         duration: 3,
-        color: "secondary"
+        color: "secondary",
+        dependsOn: null
     },
     {
         id: 2,
@@ -27,7 +28,8 @@ export const tasks = [
         progress: 45,
         startDay: 2,
         duration: 4,
-        color: "primary"
+        color: "primary",
+        dependsOn: 1
     },
     {
         id: 3,
@@ -42,7 +44,8 @@ export const tasks = [
         progress: 0,
         startDay: 5,
         duration: 4,
-        color: "surface-highlight"
+        color: "surface-highlight",
+        dependsOn: 2
     },
     {
         id: 4,
@@ -57,7 +60,8 @@ export const tasks = [
         progress: 10,
         startDay: 7,
         duration: 2,
-        color: "danger" // Using danger for blocked
+        color: "danger", // Using danger for blocked
+        dependsOn: 3
     }
 ];
 
