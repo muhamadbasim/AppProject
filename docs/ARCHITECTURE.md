@@ -52,7 +52,18 @@ project-control-center/
 ## Deployment Pipeline
 
 The project uses **GitHub Actions** for Continuous Deployment:
-1.  Push to `main` branch triggers the workflow.
-2.  Dependencies installed via `bun install`.
-3.  Project built via `bun run build`.
-4.  Wrangler deploys the `dist/` folder to Cloudflare Pages.
+
+### Workflow Jobs
+| Job | Target | Description |
+|-----|--------|-------------|
+| `deploy-frontend` | Cloudflare Pages | Builds and deploys static frontend |
+| `deploy-api` | Cloudflare Worker | Deploys API as serverless function |
+
+### Trigger
+- Runs automatically on every push to `main` branch
+
+### Required Secrets
+| Secret | Description |
+|--------|-------------|
+| `CLOUDFLARE_API_TOKEN` | API token with Pages + Workers + User Read permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID |

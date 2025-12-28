@@ -1,6 +1,30 @@
 <script>
   import TaskCard from "./TaskCard.svelte";
   import { taskListData } from "../data.js";
+
+  export let onTaskClick = null;
+
+  function handleTaskClick(task) {
+    // Map taskListData format to TaskDetail format
+    const detailedTask = {
+      id: task.id,
+      name: task.name.toUpperCase().replace(/\s+/g, "_"),
+      status: task.status.toUpperCase().replace(/\s+/g, "_"),
+      type: "TASK",
+      progress: task.progress,
+      assignee: task.assignee.toUpperCase().replace(/\s+/g, "_"),
+      dueDate: `${task.dueDays}D`,
+      priority: task.priority.toUpperCase(),
+      description: `Task: ${task.name}. Assigned to ${task.assignee}. Status: ${task.status}.`,
+      blockedBy: null,
+      spent: 0,
+      allocated: 1000,
+      logs: [],
+    };
+    if (onTaskClick) {
+      onTaskClick(detailedTask);
+    }
+  }
 </script>
 
 <div
@@ -22,8 +46,9 @@
   <!-- Task List -->
   <div class="space-y-1 mt-1">
     {#each taskListData as task (task.id)}
-      <div
-        class="flex items-center gap-2 py-2 px-1 bg-surface-dark border border-border-dark rounded hover:bg-surface-highlight/50 transition-colors {task.progress ===
+      <button
+        onclick={() => handleTaskClick(task)}
+        class="flex items-center gap-2 py-2 px-1 bg-surface-dark border border-border-dark rounded hover:bg-surface-highlight/50 hover:border-primary/50 transition-colors cursor-pointer w-full text-left {task.progress ===
         100
           ? 'opacity-60'
           : ''}"
@@ -87,7 +112,7 @@
             >{task.progress}%</span
           >
         </div>
-      </div>
+      </button>
     {/each}
   </div>
 </div>

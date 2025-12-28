@@ -4,6 +4,29 @@
   // Constants for layout
   const COL_WIDTH = 60;
   const SIDEBAR_WIDTH = 160;
+
+  export let onTaskClick = null;
+
+  function handleTaskClick(task) {
+    const detailedTask = {
+      id: `GANTT-${task.id}`,
+      name: task.name.toUpperCase().replace(/\s+/g, "_"),
+      status: task.status.toUpperCase().replace(/\s+/g, "_"),
+      type: "PROJECT",
+      progress: task.progress,
+      assignee: "TEAM",
+      dueDate: `${task.duration}D`,
+      priority: task.onTrack ? "MEDIUM" : "HIGH",
+      description: `Project: ${task.name}. Budget: $${task.budget}. Status: ${task.status}. ${task.onTrack ? "On track" : "Needs attention"}.`,
+      blockedBy: null,
+      spent: Math.round((task.progress / 100) * task.budget),
+      allocated: task.budget,
+      logs: [],
+    };
+    if (onTaskClick) {
+      onTaskClick(detailedTask);
+    }
+  }
 </script>
 
 <div
@@ -53,7 +76,11 @@
   <div class="min-w-max pb-24">
     {#each tasks as task}
       <div
-        class="flex items-stretch h-20 group hover:bg-surface-highlight/50 transition-colors"
+        class="flex items-stretch h-20 group hover:bg-surface-highlight/50 transition-colors cursor-pointer"
+        onclick={() => handleTaskClick(task)}
+        role="button"
+        tabindex="0"
+        onkeydown={(e) => e.key === "Enter" && handleTaskClick(task)}
       >
         <!-- Sticky Sidebar -->
         <div
