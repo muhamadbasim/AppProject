@@ -5,8 +5,47 @@
   export let onTaskClick = null;
   export let onFabClick = null;
 
+  // Filter and search state
+  let activeFilter = "all";
+  let searchQuery = "";
+
+  const filters = [
+    { id: "all", label: "ALL" },
+    { id: "active", label: "ACTIVE" },
+    { id: "high", label: "HIGH" },
+    { id: "completed", label: "DONE" },
+  ];
+
+  // Filtered tasks based on filter and search
+  $: filteredTasks = taskListData.filter((task) => {
+    // Search filter
+    const matchesSearch =
+      searchQuery === "" ||
+      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Status filter
+    let matchesFilter = true;
+    switch (activeFilter) {
+      case "active":
+        matchesFilter = task.progress < 100 && task.progress > 0;
+        break;
+      case "high":
+        matchesFilter =
+          task.priority === "high" || task.priority === "critical";
+        break;
+      case "completed":
+        matchesFilter = task.progress === 100;
+        break;
+      default:
+        matchesFilter = true;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
   function handleTaskClick(task) {
-    // Map taskListData format to TaskDetail format
     const detailedTask = {
       id: task.id,
       name: task.name.toUpperCase().replace(/\s+/g, "_"),
@@ -31,6 +70,40 @@
 <div
   class="flex-1 overflow-y-auto no-scrollbar px-3 pt-2 pb-24 bg-background-dark"
 >
+  <!-- Search Bar -->
+  <div class="relative mb-3">
+    <span
+      class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg"
+      >search</span
+    >
+    <input
+      type="text"
+      bind:value={searchQuery}
+      placeholder="Search tasks..."
+      class="w-full bg-surface-dark border border-border-dark rounded-lg pl-10 pr-4 py-2 text-sm text-text-light placeholder:text-text-muted focus:outline-none focus:border-primary"
+    />
+  </div>
+
+  <!-- Filter Buttons -->
+  <div class="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+    {#each filters as filter}
+      <button
+        onclick={() => (activeFilter = filter.id)}
+        class="px-3 py-1.5 text-[10px] font-bold uppercase rounded-full border whitespace-nowrap transition-colors
+          {activeFilter === filter.id
+          ? 'bg-primary text-background-dark border-primary'
+          : 'bg-surface-dark text-text-muted border-border-dark hover:border-primary/50'}"
+      >
+        {filter.label}
+      </button>
+    {/each}
+  </div>
+
+  <!-- Results Count -->
+  <div class="text-[10px] text-text-muted uppercase mb-2">
+    {filteredTasks.length} / {taskListData.length} TASKS
+  </div>
+
   <!-- Table Header -->
   <div
     class="flex items-center gap-2 py-2 px-1 border-b border-border-dark sticky top-0 bg-background-dark z-10 text-text-muted text-[10px] uppercase font-bold"
@@ -46,7 +119,7 @@
 
   <!-- Task List -->
   <div class="space-y-1 mt-1">
-    {#each taskListData as task (task.id)}
+    {#each filteredTasks as task (task.id)}
       <button
         onclick={() => handleTaskClick(task)}
         class="flex items-center gap-2 py-2 px-1 bg-surface-dark border border-border-dark rounded hover:bg-surface-highlight/50 hover:border-primary/50 transition-colors cursor-pointer w-full text-left {task.progress ===
@@ -114,6 +187,13 @@
           >
         </div>
       </button>
+    {:else}
+      <div class="text-center py-8 text-text-muted text-sm">
+        <span class="material-symbols-outlined text-3xl mb-2 block opacity-50"
+          >search_off</span
+        >
+        No tasks found
+      </div>
     {/each}
   </div>
 </div>
