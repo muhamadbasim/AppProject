@@ -27,13 +27,21 @@
         if (fromTask) {
           const fromIndex = tasks.indexOf(fromTask);
           // Arrow starts from end of 'from' task bar (right edge)
-          const fromX = (fromTask.startDay + fromTask.duration) * COL_WIDTH - 5;
+          // Add SIDEBAR_WIDTH because SVG is absolute over the entire scroll width
+          const fromX =
+            SIDEBAR_WIDTH +
+            (fromTask.startDay + fromTask.duration) * COL_WIDTH -
+            10;
           const fromY = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+
           // Arrow ends at start of 'to' task bar (left edge)
-          const toX = task.startDay * COL_WIDTH + 15;
+          const toX = SIDEBAR_WIDTH + task.startDay * COL_WIDTH + 10;
           const toY = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+
           // Midpoint for right-angle connector
+          // Go out 15px from the end of the first task
           const midX = fromX + 15;
+
           arrows.push({ fromX, fromY, toX, toY, midX, fromTask, toTask: task });
         }
       }
@@ -85,51 +93,63 @@
   </div>
 </div>
 
-<!-- Day Headers -->
-<div
-  class="flex overflow-x-auto no-scrollbar bg-background-dark border-b border-border-dark shrink-0 pl-[{SIDEBAR_WIDTH}px]"
->
-  <div class="flex min-w-max">
-    {#each days as day}
-      <div
-        class="flex flex-col items-center justify-center w-[{COL_WIDTH}px] h-12 border-r border-dashed border-border-dark/50 {day.today
-          ? 'bg-primary/10'
-          : ''} {day.weekend ? 'bg-surface-dark opacity-70' : ''}"
-      >
-        <span
-          class="text-[9px] font-medium uppercase"
-          class:text-primary={day.today}
-          class:text-text-muted={!day.today}>{day.day}</span
-        >
-        {#if day.today}
-          <div
-            class="size-5 bg-primary rounded-full flex items-center justify-center mt-0.5"
-          >
-            <span class="text-xs font-bold text-text-on-gold">{day.date}</span>
-          </div>
-        {:else}
-          <span
-            class="text-sm font-bold"
-            class:text-text-light={!day.weekend}
-            class:text-text-muted={day.weekend}>{day.date}</span
-          >
-        {/if}
-      </div>
-    {/each}
-  </div>
-</div>
-
 <!-- Gantt Body -->
 <div
   class="flex-1 overflow-y-auto overflow-x-auto relative bg-background-dark"
   id="gantt-container"
 >
+  <!-- Day Headers (Now Sticky inside Body) -->
+  <div
+    class="sticky top-0 z-30 flex min-w-max bg-background-dark border-b border-border-dark h-12 shadow-sm"
+  >
+    <!-- Sticky Corner for Sidebar Header -->
+    <div
+      class="sticky left-0 z-40 shrink-0 w-[{SIDEBAR_WIDTH}px] bg-surface-dark border-r border-border-dark flex items-center justify-center"
+    >
+      <span
+        class="text-[10px] font-bold text-text-muted uppercase tracking-wider"
+        >Project Timeline</span
+      >
+    </div>
+
+    <!-- Days Grid -->
+    <div class="flex">
+      {#each days as day}
+        <div
+          class="flex flex-col items-center justify-center w-[{COL_WIDTH}px] h-full border-r border-dashed border-border-dark/50 {day.today
+            ? 'bg-primary/10'
+            : ''} {day.weekend ? 'bg-surface-dark opacity-70' : ''}"
+        >
+          <span
+            class="text-[9px] font-medium uppercase"
+            class:text-primary={day.today}
+            class:text-text-muted={!day.today}>{day.day}</span
+          >
+          {#if day.today}
+            <div
+              class="size-5 bg-primary rounded-full flex items-center justify-center mt-0.5"
+            >
+              <span class="text-xs font-bold text-text-on-gold">{day.date}</span
+              >
+            </div>
+          {:else}
+            <span
+              class="text-sm font-bold"
+              class:text-text-light={!day.weekend}
+              class:text-text-muted={day.weekend}>{day.date}</span
+            >
+          {/if}
+        </div>
+      {/each}
+    </div>
+  </div>
+
   <!-- SVG Layer for Dependency Arrows -->
   <svg
     class="absolute inset-0 w-full h-full pointer-events-none z-20"
     style="min-width: {SIDEBAR_WIDTH +
       days.length * COL_WIDTH}px; min-height: {tasks.length * ROW_HEIGHT +
-      64}px;"
+      100}px;"
   >
     <defs>
       <marker
