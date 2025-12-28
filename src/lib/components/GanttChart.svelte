@@ -92,6 +92,13 @@
         {mode.label}
       </button>
     {/each}
+    <button
+      onclick={() => window.print()}
+      class="ml-2 px-3 py-1 text-[10px] font-bold uppercase rounded border bg-background-dark text-text-muted border-border-dark hover:border-primary/50 hover:text-primary transition-colors flex items-center gap-1"
+    >
+      <span class="material-symbols-outlined text-[12px]">print</span>
+      PRINT
+    </button>
   </div>
 </div>
 

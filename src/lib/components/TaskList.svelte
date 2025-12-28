@@ -127,22 +127,66 @@
       {filteredTasks.length} / {taskListData.length} TASKS
     </div>
 
-    <!-- Sort Toggle -->
-    <button
-      class="flex items-center gap-1 text-[10px] font-bold text-primary uppercase hover:bg-surface-highlight px-2 py-0.5 rounded transition-colors border border-transparent hover:border-border-dark"
-      onclick={() => {
-        if (sortBy === "default") sortBy = "due";
-        else if (sortBy === "due") sortBy = "priority";
-        else sortBy = "default";
-      }}
-    >
-      <span class="material-symbols-outlined text-[14px]">sort</span>
-      SORT: {sortBy === "default"
-        ? "DEFAULT"
-        : sortBy === "due"
-          ? "DUE DATE"
-          : "PRIORITY"}
-    </button>
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Sort Toggle -->
+      <button
+        class="flex items-center gap-1 text-[10px] font-bold text-primary uppercase hover:bg-surface-highlight px-2 py-0.5 rounded transition-colors border border-transparent hover:border-border-dark"
+        onclick={() => {
+          if (sortBy === "default") sortBy = "due";
+          else if (sortBy === "due") sortBy = "priority";
+          else sortBy = "default";
+        }}
+      >
+        <span class="material-symbols-outlined text-[14px]">sort</span>
+        SORT: {sortBy === "default"
+          ? "DEFAULT"
+          : sortBy === "due"
+            ? "DUE DATE"
+            : "PRIORITY"}
+      </button>
+
+      <!-- Export CSV -->
+      <button
+        class="flex items-center gap-1 text-[10px] font-bold text-text-muted hover:text-primary uppercase hover:bg-surface-highlight px-2 py-0.5 rounded transition-colors border border-transparent hover:border-border-dark"
+        onclick={() => {
+          const headers = [
+            "ID",
+            "Task",
+            "Assignee",
+            "Status",
+            "Priority",
+            "Due Days",
+            "Progress",
+          ];
+          const csvContent = [
+            headers.join(","),
+            ...filteredTasks.map((t) =>
+              [
+                t.id,
+                `"${t.name}"`,
+                t.assignee,
+                t.progress === 100 ? "Done" : "Active",
+                t.priority || "None",
+                t.dueDays,
+                `${t.progress}%`,
+              ].join(","),
+            ),
+          ].join("\n");
+
+          const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+          });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `tasks_export_${new Date().toISOString().slice(0, 10)}.csv`;
+          link.click();
+        }}
+      >
+        <span class="material-symbols-outlined text-[14px]">download</span>
+        CSV
+      </button>
+    </div>
   </div>
 
   <!-- Table Header -->
