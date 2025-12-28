@@ -16,34 +16,56 @@
     { id: "completed", label: "DONE" },
   ];
 
-  // Filtered tasks based on filter and search
-  $: filteredTasks = taskListData.filter((task) => {
-    // Search filter
-    const matchesSearch =
-      searchQuery === "" ||
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+  // Sort state
+  let sortBy = "default"; // default, due, priority
 
-    // Status filter
-    let matchesFilter = true;
-    switch (activeFilter) {
-      case "active":
-        matchesFilter = task.progress < 100 && task.progress > 0;
-        break;
-      case "high":
-        matchesFilter =
-          task.priority === "high" || task.priority === "critical";
-        break;
-      case "completed":
-        matchesFilter = task.progress === 100;
-        break;
-      default:
-        matchesFilter = true;
-    }
+  const priorityOrder = {
+    critical: 4,
+    high: 3,
+    medium: 2,
+    low: 1,
+    null: 0,
+  };
 
-    return matchesSearch && matchesFilter;
-  });
+  // Filtered and Sorted tasks
+  $: filteredTasks = taskListData
+    .filter((task) => {
+      // Search filter
+      const matchesSearch =
+        searchQuery === "" ||
+        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Status filter
+      let matchesFilter = true;
+      switch (activeFilter) {
+        case "active":
+          matchesFilter = task.progress < 100 && task.progress > 0;
+          break;
+        case "high":
+          matchesFilter =
+            task.priority === "high" || task.priority === "critical";
+          break;
+        case "completed":
+          matchesFilter = task.progress === 100;
+          break;
+        default:
+          matchesFilter = true;
+      }
+
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      if (sortBy === "due") {
+        return a.dueDays - b.dueDays;
+      } else if (sortBy === "priority") {
+        const pA = priorityOrder[a.priority] || 0;
+        const pB = priorityOrder[b.priority] || 0;
+        return pB - pA; // Descending (Critical first)
+      }
+      return 0; // Default order
+    });
 
   function handleTaskClick(task) {
     const detailedTask = {
@@ -99,9 +121,28 @@
     {/each}
   </div>
 
-  <!-- Results Count -->
-  <div class="text-[10px] text-text-muted uppercase mb-2">
-    {filteredTasks.length} / {taskListData.length} TASKS
+  <!-- Results Count & Sort -->
+  <div class="flex items-center justify-between mb-2 px-1">
+    <div class="text-[10px] text-text-muted uppercase">
+      {filteredTasks.length} / {taskListData.length} TASKS
+    </div>
+
+    <!-- Sort Toggle -->
+    <button
+      class="flex items-center gap-1 text-[10px] font-bold text-primary uppercase hover:bg-surface-highlight px-2 py-0.5 rounded transition-colors border border-transparent hover:border-border-dark"
+      onclick={() => {
+        if (sortBy === "default") sortBy = "due";
+        else if (sortBy === "due") sortBy = "priority";
+        else sortBy = "default";
+      }}
+    >
+      <span class="material-symbols-outlined text-[14px]">sort</span>
+      SORT: {sortBy === "default"
+        ? "DEFAULT"
+        : sortBy === "due"
+          ? "DUE DATE"
+          : "PRIORITY"}
+    </button>
   </div>
 
   <!-- Table Header -->
