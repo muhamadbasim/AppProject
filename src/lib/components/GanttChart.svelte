@@ -106,7 +106,8 @@
   >
     <!-- Sticky Corner for Sidebar Header -->
     <div
-      class="sticky left-0 z-40 shrink-0 w-[{SIDEBAR_WIDTH}px] bg-surface-dark border-r border-border-dark flex items-center justify-center"
+      class="sticky left-0 z-40 shrink-0 bg-surface-dark border-r border-border-dark flex items-center justify-center"
+      style="width: {SIDEBAR_WIDTH}px;"
     >
       <span
         class="text-[10px] font-bold text-text-muted uppercase tracking-wider"
@@ -118,9 +119,10 @@
     <div class="flex">
       {#each days as day}
         <div
-          class="flex flex-col items-center justify-center w-[{COL_WIDTH}px] h-full border-r border-dashed border-border-dark/50 {day.today
+          class="flex flex-col items-center justify-center h-full border-r border-dashed border-border-dark/50 {day.today
             ? 'bg-primary/10'
             : ''} {day.weekend ? 'bg-surface-dark opacity-70' : ''}"
+          style="width: {COL_WIDTH}px;"
         >
           <span
             class="text-[9px] font-medium uppercase"
@@ -200,7 +202,8 @@
       >
         <!-- Sticky Sidebar -->
         <div
-          class="sticky left-0 w-[{SIDEBAR_WIDTH}px] bg-background-dark group-hover:bg-surface-highlight/50 border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
+          class="sticky left-0 bg-background-dark group-hover:bg-surface-highlight/50 border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
+          style="width: {SIDEBAR_WIDTH}px;"
         >
           <div class="flex items-center gap-2 mb-0.5">
             {#if task.avatar}
@@ -248,7 +251,8 @@
           <div class="absolute inset-0 flex pointer-events-none">
             {#each days as _}
               <div
-                class="w-[{COL_WIDTH}px] border-r border-dashed border-border-dark/30 h-full"
+                class="border-r border-dashed border-border-dark/30 h-full"
+                style="width: {COL_WIDTH}px;"
               ></div>
             {/each}
           </div>
