@@ -1,8 +1,10 @@
 # API Documentation
 
-The backend is built with **Hono** and runs as a serverless function on Cloudflare Workers (or locally via Bun).
+The backend is built with **Hono** and runs as a **Cloudflare Worker**.
 
-**Base URL**: `/api`
+**Production URL**: `https://project-control-center-api.perfectmoney7.workers.dev`
+
+**Base Path**: `/api`
 
 ## Endpoints
 
