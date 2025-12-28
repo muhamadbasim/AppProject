@@ -22,9 +22,17 @@ Bottom navigation bar for switching views on mobile/desktop.
 
 ### 1. Dashboard View
 **Files**: `Dashboard.svelte`, `MetricCard.svelte`, `ProjectList.svelte`
-- **Dashboard**: Aggregates metrics and active projects.
-- **MetricCard**: Displays a single key performance indicator(KPI) with an icon.
-- **ProjectList**: A list of active projects with status indicators.
+**Store**: `stores/dashboardStore.js`
+
+- **Dashboard**: Fetches metrics and projects from API on mount. Shows loading skeletons and error states.
+- **MetricCard**: Displays a single key performance indicator (KPI) with an icon.
+- **ProjectList**: A clickable list of active projects with status indicators and hover effects.
+
+#### Props (ProjectList)
+| Prop | Type | Description |
+|------|------|-------------|
+| `projects` | Array | List of project objects `{id, name, status}` |
+| `onProjectClick` | Function | Callback when a project row is clicked |
 
 ### 2. Task List View
 **Files**: `TaskList.svelte`, `TaskCard.svelte` (legacy/optional)
