@@ -26,16 +26,15 @@
         const fromTask = tasks.find((t) => t.id === task.dependsOn);
         if (fromTask) {
           const fromIndex = tasks.indexOf(fromTask);
-          // Arrow starts from end of 'from' task bar
-          const fromX =
-            SIDEBAR_WIDTH +
-            (fromTask.startDay + fromTask.duration) * COL_WIDTH -
-            10;
+          // Arrow starts from end of 'from' task bar (right edge)
+          const fromX = (fromTask.startDay + fromTask.duration) * COL_WIDTH - 5;
           const fromY = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
-          // Arrow ends at start of 'to' task bar
-          const toX = SIDEBAR_WIDTH + task.startDay * COL_WIDTH + 10;
+          // Arrow ends at start of 'to' task bar (left edge)
+          const toX = task.startDay * COL_WIDTH + 15;
           const toY = index * ROW_HEIGHT + ROW_HEIGHT / 2;
-          arrows.push({ fromX, fromY, toX, toY, fromTask, toTask: task });
+          // Midpoint for right-angle connector
+          const midX = fromX + 15;
+          arrows.push({ fromX, fromY, toX, toY, midX, fromTask, toTask: task });
         }
       }
     });
@@ -147,13 +146,15 @@
     {#each dependencyArrows as arrow}
       <path
         d="M {arrow.fromX} {arrow.fromY} 
-           C {arrow.fromX + 20} {arrow.fromY}, 
-             {arrow.toX - 20} {arrow.toY}, 
-             {arrow.toX} {arrow.toY}"
+           L {arrow.midX} {arrow.fromY}
+           L {arrow.midX} {arrow.toY}
+           L {arrow.toX} {arrow.toY}"
         fill="none"
         stroke="#FFD700"
         stroke-width="2"
-        stroke-opacity="0.6"
+        stroke-opacity="0.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
         marker-end="url(#arrowhead)"
       />
     {/each}
