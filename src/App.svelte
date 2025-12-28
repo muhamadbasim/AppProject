@@ -7,9 +7,11 @@
   import Dashboard from "./lib/components/Dashboard.svelte";
   import TimelineView from "./lib/components/TimelineView.svelte";
   import TaskDetail from "./lib/components/TaskDetail.svelte";
+  import TaskForm from "./lib/components/TaskForm.svelte";
 
   let activeTab = $state("gantt");
   let selectedTask = $state(null);
+  let showTaskForm = $state(false);
   let isBottomSheetOpen = $state(false);
 
   function handleTabChange(tab) {
@@ -17,6 +19,7 @@
   }
 
   function handleTaskClick(task) {
+    showTaskForm = false;
     selectedTask = task;
     isBottomSheetOpen = true;
   }
@@ -24,6 +27,19 @@
   function handleCloseBottomSheet() {
     isBottomSheetOpen = false;
     selectedTask = null;
+    showTaskForm = false;
+  }
+
+  function handleFabClick() {
+    selectedTask = null;
+    showTaskForm = true;
+    isBottomSheetOpen = true;
+  }
+
+  function handleTaskCreated(task) {
+    console.log("[App] Task created:", task);
+    handleCloseBottomSheet();
+    // Could refresh task list here
   }
 </script>
 
@@ -34,16 +50,31 @@
     {#if activeTab === "gantt"}
       <GanttChart onTaskClick={handleTaskClick} />
     {:else if activeTab === "tasks"}
-      <TaskList onTaskClick={handleTaskClick} />
+      <TaskList onTaskClick={handleTaskClick} onFabClick={handleFabClick} />
     {:else if activeTab === "dashboard"}
-      <Dashboard />
+      <Dashboard onFabClick={handleFabClick} />
     {:else if activeTab === "timeline"}
       <TimelineView />
     {/if}
   </main>
 
+  <!-- Global FAB for views without their own -->
+  {#if activeTab === "gantt" || activeTab === "timeline"}
+    <button
+      onclick={handleFabClick}
+      class="fixed bottom-24 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-background-dark shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
+    >
+      <span class="material-symbols-outlined text-2xl">add</span>
+    </button>
+  {/if}
+
   <BottomSheet isOpen={isBottomSheetOpen} onClose={handleCloseBottomSheet}>
-    {#if selectedTask}
+    {#if showTaskForm}
+      <TaskForm
+        onSubmit={handleTaskCreated}
+        onCancel={handleCloseBottomSheet}
+      />
+    {:else if selectedTask}
       <TaskDetail task={selectedTask} onClose={handleCloseBottomSheet} />
     {/if}
   </BottomSheet>

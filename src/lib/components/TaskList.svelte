@@ -3,6 +3,7 @@
   import { taskListData } from "../data.js";
 
   export let onTaskClick = null;
+  export let onFabClick = null;
 
   function handleTaskClick(task) {
     // Map taskListData format to TaskDetail format
@@ -119,6 +120,7 @@
 
 <!-- Floating Add Button -->
 <button
+  onclick={onFabClick}
   class="fixed bottom-24 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-background-dark shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
 >
   <span class="material-symbols-outlined text-xl">add</span>

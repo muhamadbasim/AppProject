@@ -4,6 +4,8 @@
   import ProjectList from "./ProjectList.svelte";
   import { metricsStore, projectsStore } from "../stores/dashboardStore.js";
 
+  let { onFabClick = null } = $props();
+
   // Reactive state from stores
   let metricsData = $state({
     activeProjects: 0,
@@ -161,7 +163,8 @@
 
 <!-- Floating Action Button -->
 <button
+  onclick={onFabClick}
   class="fixed bottom-24 right-6 z-40 flex size-14 items-center justify-center rounded-sm bg-primary shadow-[0_0_20px_rgba(255,215,0,0.4)] text-background-dark hover:scale-105 active:scale-95 transition-all"
 >
-  <span class="material-symbols-outlined text-2xl">terminal</span>
+  <span class="material-symbols-outlined text-2xl">add</span>
 </button>
