@@ -26,7 +26,7 @@ export const tasks = [
         plan: "Oct 19",
         est: "Oct 20",
         progress: 45,
-        startDay: 2,
+        startDay: 3,  // Start after UX Research ends (0+3=3)
         duration: 4,
         color: "primary",
         dependsOn: 1
@@ -42,8 +42,8 @@ export const tasks = [
         plan: "Oct 23",
         est: "Oct 26",
         progress: 0,
-        startDay: 5,
-        duration: 4,
+        startDay: 7,  // Start after Design Phase ends (3+4=7)
+        duration: 3,
         color: "surface-highlight",
         dependsOn: 2
     },
@@ -58,8 +58,8 @@ export const tasks = [
         plan: "Oct 26",
         est: "Oct 30",
         progress: 10,
-        startDay: 7,
-        duration: 2,
+        startDay: 10, // Start after API Dev ends (7+3=10)
+        duration: 3,
         color: "danger", // Using danger for blocked
         dependsOn: 3
     }
@@ -73,6 +73,12 @@ export const days = [
     { day: "Fri", date: 20 },
     { day: "Sat", date: 21, weekend: true },
     { day: "Sun", date: 22, weekend: true },
+    { day: "Mon", date: 23 },
+    { day: "Tue", date: 24 },
+    { day: "Wed", date: 25 },
+    { day: "Thu", date: 26 },
+    { day: "Fri", date: 27 },
+    { day: "Sat", date: 28, weekend: true },
 ];
 
 export const taskListData = [

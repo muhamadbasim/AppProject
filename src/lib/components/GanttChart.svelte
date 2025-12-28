@@ -15,6 +15,7 @@
 
   const SIDEBAR_WIDTH = 160;
   const ROW_HEIGHT = 80;
+  const HEADER_HEIGHT = 48; // h-12 = 3rem = 48px
 
   export let onTaskClick = null;
 
@@ -32,11 +33,12 @@
             SIDEBAR_WIDTH +
             (fromTask.startDay + fromTask.duration) * COL_WIDTH -
             10;
-          const fromY = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+          // Add HEADER_HEIGHT offset because Date Header is now inside the scroll container
+          const fromY = HEADER_HEIGHT + fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
 
           // Arrow ends at start of 'to' task bar (left edge)
           const toX = SIDEBAR_WIDTH + task.startDay * COL_WIDTH + 10;
-          const toY = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+          const toY = HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2;
 
           // Midpoint for right-angle connector
           // Go out 15px from the end of the first task
