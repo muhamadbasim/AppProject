@@ -16,6 +16,7 @@ Detailed documentation is available in the `docs/` folder:
 - [**System Architecture**](docs/ARCHITECTURE.md) - Tech stack, directory structure, and data flow.
 - [**Component Reference**](docs/COMPONENTS.md) - Details on Svelte components and views.
 - [**API Documentation**](docs/API.md) - API endpoints and usage.
+- [**User Stories**](docs/USER_STORIES.md) - Personas, requirements, and acceptance criteria.
 
 ## Tech Stack
 
