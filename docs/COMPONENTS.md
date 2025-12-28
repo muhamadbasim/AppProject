@@ -57,9 +57,14 @@ A vertical timeline highlighting key project milestones.
     - **Status Indicators**: "Active" (pulsing), "Done" (line-through), and normal states.
     - **Risks & Notes**: Summary section for potential blockers.
 
-### 5. Task Detail (Overlay)
-**Files**: `TaskDetail.svelte`, `BottomSheet.svelte`
-- **BottomSheet**: A slide-up panel for displaying details without leaving the context.
+### 5. Task Detail View
+**File**: `TaskDetail.svelte`
+
+Displays detailed task info in CLI-style layout. Opens in BottomSheet when clicking tasks.
+
+#### Trigger
+- Click any task in TaskList → opens BottomSheet
+- Click any task in GanttChart → opens BottomSheet
 - **TaskDetail**: A CLI-terminal inspired view showing granular task data (logs, dependencies, exact budget).
 
 ---
