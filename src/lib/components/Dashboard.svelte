@@ -35,10 +35,18 @@
     };
   });
 
-  // Fetch data on mount
+  // Fetch data on mount and poll every 30s
   onMount(() => {
     metricsStore.fetch();
     projectsStore.fetch();
+
+    const intervalId = setInterval(() => {
+      // Polling for near real-time updates
+      metricsStore.fetch();
+      projectsStore.fetch();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   });
 
   // Computed metrics array for MetricCard render

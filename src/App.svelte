@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   import Header from "./lib/components/Header.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import GanttChart from "./lib/components/GanttChart.svelte";
@@ -8,11 +9,36 @@
   import TimelineView from "./lib/components/TimelineView.svelte";
   import TaskDetail from "./lib/components/TaskDetail.svelte";
   import TaskForm from "./lib/components/TaskForm.svelte";
+  import Toast from "./lib/components/Toast.svelte";
+  import { taskListData } from "./lib/data.js";
+  import {
+    checkDeadlineAlerts,
+    showWarning,
+    showError,
+  } from "./lib/stores/notificationStore.js";
 
   let activeTab = $state("gantt");
   let selectedTask = $state(null);
   let showTaskForm = $state(false);
   let isBottomSheetOpen = $state(false);
+
+  // Check for deadline alerts on mount
+  onMount(() => {
+    // Slight delay to let the app render first
+    setTimeout(() => {
+      const alerts = checkDeadlineAlerts(taskListData);
+      alerts.forEach((alert, i) => {
+        // Stagger notifications
+        setTimeout(() => {
+          if (alert.type === "error") {
+            showError(alert.title, alert.message);
+          } else {
+            showWarning(alert.title, alert.message);
+          }
+        }, i * 800);
+      });
+    }, 1500);
+  });
 
   function handleTabChange(tab) {
     activeTab = tab;
@@ -44,6 +70,9 @@
 </script>
 
 <div class="h-screen flex flex-col overflow-hidden font-display dark">
+  <!-- Global Toast Notifications -->
+  <Toast />
+
   <Header />
 
   <main class="flex-1 overflow-hidden relative flex flex-col">
