@@ -3,3 +3,12 @@ compatibility_date = "2024-01-01"
 
 [site]
 bucket = "./dist"
+
+# D1 Database binding
+# After creating the database with: wrangler d1 create project-control-db
+# Replace DATABASE_ID with the actual ID from the command output
+[[d1_databases]]
+binding = "DB"
+database_name = "project-control-db"
+database_id = "YOUR_DATABASE_ID_HERE"
+
