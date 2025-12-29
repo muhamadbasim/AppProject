@@ -4,3 +4,9 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ENVIRONMENT = "production"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "project-control-db"
+database_id = "56097741-e6e8-4f4c-930d-454e21342ca1"
