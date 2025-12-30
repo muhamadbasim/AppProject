@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import MetricCard from "./MetricCard.svelte";
   import ProjectList from "./ProjectList.svelte";
+  import ProjectForm from "./ProjectForm.svelte";
   import { metricsStore, projectsStore } from "../stores/dashboardStore.js";
 
   let { onFabClick = null } = $props();
@@ -20,6 +21,9 @@
     loading: true,
     error: null,
   });
+
+  // Edit State
+  let editingProject = $state(null);
 
   // Subscribe to stores
   $effect(() => {
@@ -86,6 +90,8 @@
         p.status === "In Progress"
           ? `${p.progress}%`
           : p.status.toUpperCase().slice(0, 6),
+      // Keep original values for editing
+      _raw: p,
     })),
   );
 
@@ -93,10 +99,15 @@
     console.log("[Dashboard] Project clicked:", project.name);
     // Future: Navigate to project detail or filter tasks
   }
+
+  function handleEditProject(project) {
+    // Use raw project data if available, otherwise fallback (won't happen with current logic)
+    editingProject = project._raw || project;
+  }
 </script>
 
 <div
-  class="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-24 bg-background-dark"
+  class="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-24 bg-background-dark relative"
 >
   <!-- System Overview -->
   <h3 class="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
@@ -165,9 +176,27 @@
     <ProjectList
       projects={formattedProjects}
       onProjectClick={handleProjectClick}
+      onEditClick={handleEditProject}
     />
   {/if}
 </div>
+
+<!-- Edit Overlay Modal -->
+{#if editingProject}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+  >
+    <div
+      class="w-full max-w-md bg-surface-dark border border-border-dark rounded-lg p-6 shadow-2xl relative"
+    >
+      <ProjectForm
+        project={editingProject}
+        onSubmit={() => (editingProject = null)}
+        onCancel={() => (editingProject = null)}
+      />
+    </div>
+  </div>
+{/if}
 
 <!-- Floating Action Button -->
 <button

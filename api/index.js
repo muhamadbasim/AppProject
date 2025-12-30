@@ -82,26 +82,43 @@ app.get('/api/tasks/:id', async (c) => {
 app.post('/api/tasks', async (c) => {
     const body = await c.req.json();
 
+    console.log('POST /api/tasks - Received body:', JSON.stringify(body));
+
     if (hasD1(c)) {
         try {
+            // Ensure all values are defined (D1 doesn't like undefined)
+            const name = body.name || 'New Task';
+            const status = body.status || 'Pending';
+            const progress = body.progress ?? 0;
+            const projectId = body.project_id ?? body.projectId ?? 1;
+            const priority = body.priority || 'medium';
+            const assignee = body.assignee || 'Unassigned';
+            const dueDays = body.due_days ?? body.dueDays ?? 7;
+            const budget = body.budget || null;
+            const dependsOn = body.depends_on ?? body.dependsOn ?? null;
+
+            console.log('POST /api/tasks - Binding values:', { name, status, progress, projectId, priority, assignee, dueDays, budget, dependsOn });
+
             const result = await c.env.DB.prepare(`
-                INSERT INTO tasks (name, status, progress, project_id, priority, assignee, due_days)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tasks (name, status, progress, project_id, priority, assignee, due_days, budget, depends_on)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
-                body.name || 'New Task',
-                body.status || 'Pending',
-                body.progress || 0,
-                body.project_id || body.projectId || 1,
-                body.priority || 'medium',
-                body.assignee || 'Unassigned',
-                body.due_days || body.dueDays || 7
+                name,
+                status,
+                progress,
+                projectId,
+                priority,
+                assignee,
+                dueDays,
+                budget,
+                dependsOn
             ).run();
 
             const newTask = await c.env.DB.prepare('SELECT * FROM tasks WHERE id = ?')
                 .bind(result.meta.last_row_id).first();
             return c.json(newTask, 201);
         } catch (e) {
-            console.error('D1 Error:', e);
+            console.error('D1 Error:', e.message, e.stack);
             return c.json({ error: 'Failed to create task', details: e.message }, 500);
         }
     }
@@ -116,19 +133,35 @@ app.put('/api/tasks/:id', async (c) => {
     const id = parseInt(c.req.param('id'));
     const body = await c.req.json();
 
+    console.log('PUT /api/tasks/:id - Received body:', JSON.stringify(body));
+
     if (hasD1(c)) {
         try {
+            // Ensure all values are defined (D1 doesn't like undefined)
+            const name = body.name || 'Unnamed Task';
+            const status = body.status || 'Pending';
+            const progress = body.progress ?? 0;
+            const priority = body.priority || 'medium';
+            const assignee = body.assignee || 'Unassigned';
+            const dueDays = body.due_days ?? body.dueDays ?? 7;
+            const budget = body.budget || null;
+            const dependsOn = body.depends_on ?? body.dependsOn ?? null;
+
+            console.log('PUT /api/tasks/:id - Binding values:', { name, status, progress, priority, assignee, dueDays, budget, dependsOn, id });
+
             await c.env.DB.prepare(`
                 UPDATE tasks 
-                SET name = ?, status = ?, progress = ?, priority = ?, assignee = ?, due_days = ?, updated_at = CURRENT_TIMESTAMP
+                SET name = ?, status = ?, progress = ?, priority = ?, assignee = ?, due_days = ?, budget = ?, depends_on = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `).bind(
-                body.name,
-                body.status,
-                body.progress,
-                body.priority,
-                body.assignee,
-                body.due_days || body.dueDays,
+                name,
+                status,
+                progress,
+                priority,
+                assignee,
+                dueDays,
+                budget,
+                dependsOn,
                 id
             ).run();
 
@@ -136,8 +169,8 @@ app.put('/api/tasks/:id', async (c) => {
             if (updated) return c.json(updated);
             return c.json({ error: 'Task not found' }, 404);
         } catch (e) {
-            console.error('D1 Error:', e);
-            return c.json({ error: 'Failed to update task' }, 500);
+            console.error('D1 Error:', e.message, e.stack);
+            return c.json({ error: 'Failed to update task', details: e.message }, 500);
         }
     }
 
@@ -201,6 +234,50 @@ app.get('/api/projects/:id', async (c) => {
     return c.json({ error: 'Project not found' }, 404);
 });
 
+app.put('/api/projects/:id', async (c) => {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json();
+
+    console.log('PUT /api/projects/:id - Received body:', JSON.stringify(body));
+
+    if (hasD1(c)) {
+        try {
+            const name = body.name || 'Unnamed Project';
+            const status = body.status || 'Pending';
+            const progress = body.progress ?? 0;
+
+            console.log('PUT /api/projects/:id - Binding values:', { name, status, progress, id });
+
+            await c.env.DB.prepare(`
+                UPDATE projects 
+                SET name = ?, status = ?, progress = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).bind(
+                name,
+                status,
+                progress,
+                id
+            ).run();
+
+            const updated = await c.env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(id).first();
+            if (updated) return c.json(updated);
+            return c.json({ error: 'Project not found' }, 404);
+        } catch (e) {
+            console.error('D1 Error:', e.message, e.stack);
+            return c.json({ error: 'Failed to update project', details: e.message }, 500);
+        }
+    }
+
+    // Fallback in-memory
+    const projectIndex = fallbackProjects.findIndex(p => p.id === id);
+    if (projectIndex !== -1) {
+        fallbackProjects[projectIndex] = { ...fallbackProjects[projectIndex], ...body };
+        return c.json(fallbackProjects[projectIndex]);
+    }
+
+    return c.json({ error: 'Project not found' }, 404);
+});
+
 app.post('/api/projects', async (c) => {
     const body = await c.req.json();
 
@@ -228,8 +305,99 @@ app.post('/api/projects', async (c) => {
 });
 
 // ============================================================
-// DASHBOARD METRICS ENDPOINT
+// MILESTONES ENDPOINTS
 // ============================================================
+
+app.get('/api/milestones', async (c) => {
+    const projectId = c.req.query('projectId');
+    if (hasD1(c)) {
+        try {
+            let query = 'SELECT * FROM milestones';
+            if (projectId) {
+                const { results } = await c.env.DB.prepare(query + ' WHERE project_id = ? ORDER BY id').bind(projectId).all();
+                return c.json(results);
+            }
+            const { results } = await c.env.DB.prepare(query + ' ORDER BY id').all();
+            return c.json(results);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to fetch milestones' }, 500);
+        }
+    }
+    return c.json([]);
+});
+
+app.post('/api/milestones', async (c) => {
+    const body = await c.req.json();
+    if (hasD1(c)) {
+        try {
+            const result = await c.env.DB.prepare(`
+                INSERT INTO milestones (project_id, name, date_range, icon, is_completed, is_active, sub_task_name, sub_task_progress, sub_task_note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                body.project_id,
+                body.name,
+                body.date_range,
+                body.icon,
+                body.is_completed ? 1 : 0,
+                body.is_active ? 1 : 0,
+                body.sub_task_name,
+                body.sub_task_progress,
+                body.sub_task_note
+            ).run();
+            return c.json({ success: true, id: result.meta.last_row_id }, 201);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to create milestone' }, 500);
+        }
+    }
+    return c.json({ error: 'D1 not available' }, 500);
+});
+
+// ============================================================
+// RISKS ENDPOINTS
+// ============================================================
+
+app.get('/api/risks', async (c) => {
+    const projectId = c.req.query('projectId');
+    if (hasD1(c)) {
+        try {
+            let query = 'SELECT * FROM risks';
+            if (projectId) {
+                const { results } = await c.env.DB.prepare(query + ' WHERE project_id = ? ORDER BY id').bind(projectId).all();
+                return c.json(results);
+            }
+            const { results } = await c.env.DB.prepare(query + ' ORDER BY id').all();
+            return c.json(results);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to fetch risks' }, 500);
+        }
+    }
+    return c.json([]);
+});
+
+app.post('/api/risks', async (c) => {
+    const body = await c.req.json();
+    if (hasD1(c)) {
+        try {
+            const result = await c.env.DB.prepare(`
+                INSERT INTO risks (project_id, type, title, description)
+                VALUES (?, ?, ?, ?)
+            `).bind(
+                body.project_id,
+                body.type,
+                body.title,
+                body.description
+            ).run();
+            return c.json({ success: true, id: result.meta.last_row_id }, 201);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to create risk' }, 500);
+        }
+    }
+    return c.json({ error: 'D1 not available' }, 500);
+});
 
 app.get('/api/dashboard/metrics', async (c) => {
     let tasks = fallbackTasks;

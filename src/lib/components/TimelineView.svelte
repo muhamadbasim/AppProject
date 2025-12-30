@@ -1,47 +1,43 @@
 <script>
-    const milestones = [
-        {
-            name: "Design Phase Complete",
-            dateRange: "Oct 1 - Oct 15",
-            icon: "design_services",
-            completed: true,
-        },
-        {
-            name: "Development Sprint 1",
-            dateRange: "Oct 16 - Oct 30",
-            icon: "code",
-            active: true,
-            subTask: {
-                name: "Frontend Implementation",
-                progress: 75,
-                note: "On track for completion by Oct 25.",
-            },
-        },
-        {
-            name: "Milestone: Alpha Release",
-            dateRange: "October 31",
-            icon: "flag",
-        },
-        {
-            name: "QA Testing Phase",
-            dateRange: "Nov 1 - Nov 14",
-            icon: "bug_report",
-        },
-    ];
+    import { onMount } from "svelte";
+    import {
+        milestonesStore,
+        risksStore,
+    } from "../stores/milestonesRisksStore.js";
 
-    const risks = [
-        {
-            type: "warning",
-            title: "Dependency Delay",
-            description:
-                "Awaiting final API specifications from partner team. Estimated impact: 2 days.",
-        },
-        {
-            type: "note",
-            title: "Resource Allocation",
-            description: "Reviewing Q1 allocation for upcoming features.",
-        },
-    ];
+    let milestonesData = $state({ milestones: [], loading: true });
+    let risksData = $state({ risks: [], loading: true });
+
+    onMount(() => {
+        milestonesStore.fetch();
+        risksStore.fetch();
+    });
+
+    $effect(() => {
+        const unsubM = milestonesStore.subscribe((v) => (milestonesData = v));
+        const unsubR = risksStore.subscribe((v) => (risksData = v));
+        return () => {
+            unsubM();
+            unsubR();
+        };
+    });
+
+    const milestones = $derived(
+        milestonesData.milestones.map((m) => ({
+            ...m,
+            completed: !!m.is_completed,
+            active: !!m.is_active,
+            subTask: m.sub_task_name
+                ? {
+                      name: m.sub_task_name,
+                      progress: m.sub_task_progress,
+                      note: m.sub_task_note,
+                  }
+                : null,
+        })),
+    );
+
+    const risks = $derived(risksData.risks);
 </script>
 
 <div
@@ -72,81 +68,92 @@
 
             <!-- Milestones List -->
             <div class="space-y-4">
-                {#each milestones as milestone, i}
-                    <div class="flex gap-4 relative">
-                        <!-- Icon -->
-                        <div
-                            class="relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center {milestone.active
-                                ? 'bg-primary text-background-dark shadow-lg shadow-primary/30'
-                                : milestone.completed
-                                  ? 'bg-surface-highlight text-text-muted border border-text-muted/30'
-                                  : 'bg-surface-dark text-text-muted border border-dashed border-text-muted/40'}"
-                        >
-                            <span class="material-symbols-outlined text-[14px]"
-                                >{milestone.icon}</span
+                {#if milestonesData.loading}
+                    <div class="text-xs text-text-muted animate-pulse">
+                        Loading milestones...
+                    </div>
+                {:else}
+                    {#each milestones as milestone, i}
+                        <div class="flex gap-4 relative">
+                            <!-- Icon -->
+                            <div
+                                class="relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center {milestone.active
+                                    ? 'bg-primary text-background-dark shadow-lg shadow-primary/30'
+                                    : milestone.completed
+                                      ? 'bg-surface-highlight text-text-muted border border-text-muted/30'
+                                      : 'bg-surface-dark text-text-muted border border-dashed border-text-muted/40'}"
                             >
-                        </div>
-
-                        <!-- Content -->
-                        <div
-                            class="flex-1 min-w-0 {milestone.completed
-                                ? 'opacity-60'
-                                : ''}"
-                        >
-                            <div class="flex items-center gap-2 flex-wrap">
                                 <span
-                                    class="text-sm font-medium {milestone.completed
-                                        ? 'line-through text-text-muted'
-                                        : 'text-text-light'} {milestone.active
-                                        ? 'font-bold'
-                                        : ''}"
+                                    class="material-symbols-outlined text-[14px]"
+                                    >{milestone.icon}</span
                                 >
-                                    {milestone.name}
-                                </span>
-                                {#if milestone.completed}
+                            </div>
+
+                            <!-- Content -->
+                            <div
+                                class="flex-1 min-w-0 {milestone.completed
+                                    ? 'opacity-60'
+                                    : ''}"
+                            >
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span
-                                        class="text-[10px] bg-surface-highlight text-text-muted px-2 py-0.5 rounded-full"
-                                        >Done</span
+                                        class="text-sm font-medium {milestone.completed
+                                            ? 'line-through text-text-muted'
+                                            : 'text-text-light'} {milestone.active
+                                            ? 'font-bold'
+                                            : ''}"
                                     >
-                                {:else if milestone.active}
-                                    <span
-                                        class="text-[10px] bg-primary text-background-dark px-2 py-0.5 rounded-full font-bold"
-                                        >Active</span
+                                        {milestone.name}
+                                    </span>
+                                    {#if milestone.completed}
+                                        <span
+                                            class="text-[10px] bg-surface-highlight text-text-muted px-2 py-0.5 rounded-full"
+                                            >Done</span
+                                        >
+                                    {:else if milestone.active}
+                                        <span
+                                            class="text-[10px] bg-primary text-background-dark px-2 py-0.5 rounded-full font-bold"
+                                            >Active</span
+                                        >
+                                    {/if}
+                                </div>
+                                <p
+                                    class="text-xs {milestone.active
+                                        ? 'text-primary'
+                                        : 'text-text-muted'} mt-0.5"
+                                >
+                                    {milestone.dateRange ||
+                                        milestone.date_range}
+                                </p>
+
+                                {#if milestone.active && milestone.subTask}
+                                    <div
+                                        class="mt-3 bg-background-dark p-3 rounded border border-border-dark"
                                     >
+                                        <div
+                                            class="flex items-center justify-between"
+                                        >
+                                            <span
+                                                class="text-xs font-semibold text-text-light"
+                                                >{milestone.subTask.name}</span
+                                            >
+                                            <span
+                                                class="text-xs font-bold text-primary"
+                                                >{milestone.subTask
+                                                    .progress}%</span
+                                            >
+                                        </div>
+                                        <p
+                                            class="text-[10px] text-text-muted mt-1"
+                                        >
+                                            {milestone.subTask.note}
+                                        </p>
+                                    </div>
                                 {/if}
                             </div>
-                            <p
-                                class="text-xs {milestone.active
-                                    ? 'text-primary'
-                                    : 'text-text-muted'} mt-0.5"
-                            >
-                                {milestone.dateRange}
-                            </p>
-
-                            {#if milestone.active && milestone.subTask}
-                                <div
-                                    class="mt-3 bg-background-dark p-3 rounded border border-border-dark"
-                                >
-                                    <div
-                                        class="flex items-center justify-between"
-                                    >
-                                        <span
-                                            class="text-xs font-semibold text-text-light"
-                                            >{milestone.subTask.name}</span
-                                        >
-                                        <span
-                                            class="text-xs font-bold text-primary"
-                                            >{milestone.subTask.progress}%</span
-                                        >
-                                    </div>
-                                    <p class="text-[10px] text-text-muted mt-1">
-                                        {milestone.subTask.note}
-                                    </p>
-                                </div>
-                            {/if}
                         </div>
-                    </div>
-                {/each}
+                    {/each}
+                {/if}
             </div>
         </div>
     </div>
@@ -155,24 +162,30 @@
     <div class="bg-surface-dark p-4 rounded-lg border border-border-dark">
         <h2 class="text-base font-bold text-text-light mb-3">Risks & Notes</h2>
         <ul class="space-y-3">
-            {#each risks as risk}
-                <li class="flex items-start gap-2">
-                    <span
-                        class="material-symbols-outlined text-sm flex-shrink-0 mt-0.5 {risk.type ===
-                        'warning'
-                            ? 'text-red-500'
-                            : 'text-primary'}"
-                    >
-                        {risk.type === "warning" ? "warning" : "comment"}
-                    </span>
-                    <p class="text-xs text-text-light/90">
-                        <span class="font-medium text-text-light"
-                            >{risk.title}:</span
-                        >
-                        {risk.description}
-                    </p>
+            {#if risksData.loading}
+                <li class="text-xs text-text-muted animate-pulse">
+                    Loading risks...
                 </li>
-            {/each}
+            {:else}
+                {#each risks as risk}
+                    <li class="flex items-start gap-2">
+                        <span
+                            class="material-symbols-outlined text-sm flex-shrink-0 mt-0.5 {risk.type ===
+                            'warning'
+                                ? 'text-red-500'
+                                : 'text-primary'}"
+                        >
+                            {risk.type === "warning" ? "warning" : "comment"}
+                        </span>
+                        <p class="text-xs text-text-light/90">
+                            <span class="font-medium text-text-light"
+                                >{risk.title}:</span
+                            >
+                            {risk.description}
+                        </p>
+                    </li>
+                {/each}
+            {/if}
         </ul>
     </div>
 </div>

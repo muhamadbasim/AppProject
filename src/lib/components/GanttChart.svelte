@@ -1,8 +1,22 @@
 <script>
-  import { tasks, days } from "../data.js";
+  import { onMount } from "svelte";
+  import { tasksStore } from "../stores/tasksStore.js";
+  import { days as staticDays } from "../data.js";
 
-  // View mode state
-  let viewMode = "day"; // day, week, month
+  let { onTaskClick = null } = $props();
+
+  let tasksData = $state({ tasks: [], loading: true, error: null });
+  let viewMode = $state("day"); // day, week, month
+
+  onMount(() => {
+    tasksStore.fetch();
+  });
+
+  $effect(() => {
+    const unsub = tasksStore.subscribe((v) => (tasksData = v));
+    return unsub;
+  });
+
   const viewModes = [
     { id: "day", label: "DAY", colWidth: 60 },
     { id: "week", label: "WEEK", colWidth: 120 },
@@ -10,63 +24,61 @@
   ];
 
   // Dynamic column width based on view mode
-  $: currentView = viewModes.find((v) => v.id === viewMode);
-  $: COL_WIDTH = currentView?.colWidth || 60;
+  const currentView = $derived(viewModes.find((v) => v.id === viewMode));
+  const COL_WIDTH = $derived(currentView?.colWidth || 60);
 
   const SIDEBAR_WIDTH = 160;
   const ROW_HEIGHT = 80;
   const HEADER_HEIGHT = 48; // h-12 = 3rem = 48px
 
-  export let onTaskClick = null;
+  // Map backend tasks to Gantt-friendly format
+  const ganttTasks = $derived(
+    (tasksData.tasks || []).map((t, i) => ({
+      ...t,
+      startDay: t.startDay ?? i * 2, // Fallback logic if startDay missing
+      duration: t.duration ?? 4,
+      color: t.color || "primary",
+    })),
+  );
 
   // Calculate dependency arrow positions
-  function getDependencyArrows() {
+  const dependencyArrows = $derived.by(() => {
     const arrows = [];
-    tasks.forEach((task, index) => {
-      if (task.dependsOn) {
-        const fromTask = tasks.find((t) => t.id === task.dependsOn);
+    ganttTasks.forEach((task, index) => {
+      const dependsOnId = task.depends_on || task.dependsOn;
+      if (dependsOnId) {
+        const fromTask = ganttTasks.find((t) => t.id === dependsOnId);
         if (fromTask) {
-          const fromIndex = tasks.indexOf(fromTask);
-          // Arrow starts from end of 'from' task bar (right edge)
-          // Add SIDEBAR_WIDTH because SVG is absolute over the entire scroll width
+          const fromIndex = ganttTasks.indexOf(fromTask);
           const fromX =
             SIDEBAR_WIDTH +
             (fromTask.startDay + fromTask.duration) * COL_WIDTH -
             10;
-          // Add HEADER_HEIGHT offset because Date Header is now inside the scroll container
           const fromY = HEADER_HEIGHT + fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
-
-          // Arrow ends at start of 'to' task bar (left edge)
           const toX = SIDEBAR_WIDTH + task.startDay * COL_WIDTH + 10;
           const toY = HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2;
-
-          // Midpoint for right-angle connector
-          // Go out 15px from the end of the first task
           const midX = fromX + 15;
-
           arrows.push({ fromX, fromY, toX, toY, midX, fromTask, toTask: task });
         }
       }
     });
     return arrows;
-  }
-
-  $: dependencyArrows = getDependencyArrows();
+  });
 
   function handleTaskClick(task) {
     const detailedTask = {
       id: `GANTT-${task.id}`,
       name: task.name.toUpperCase().replace(/\s+/g, "_"),
-      status: task.status.toUpperCase().replace(/\s+/g, "_"),
+      status: (task.status || "PENDING").toUpperCase().replace(/\s+/g, "_"),
       type: "PROJECT",
-      progress: task.progress,
-      assignee: "TEAM",
+      progress: task.progress || 0,
+      assignee: (task.assignee || "TEAM").toUpperCase().replace(/\s+/g, "_"),
       dueDate: `${task.duration}D`,
-      priority: task.onTrack ? "MEDIUM" : "HIGH",
-      description: `Project: ${task.name}. Budget: $${task.budget}. Status: ${task.status}. ${task.onTrack ? "On track" : "Needs attention"}.`,
-      blockedBy: task.dependsOn ? `GANTT-${task.dependsOn}` : null,
-      spent: Math.round((task.progress / 100) * task.budget),
-      allocated: task.budget,
+      priority: task.priority || "MEDIUM",
+      description: `Project Task: ${task.name}. Budget: ${task.budget || "N/A"}. Status: ${task.status}.`,
+      blockedBy: task.depends_on || task.dependsOn || null,
+      spent: 0,
+      allocated: 0,
       logs: [],
     };
     if (onTaskClick) {
@@ -124,7 +136,7 @@
 
     <!-- Days Grid -->
     <div class="flex">
-      {#each days as day}
+      {#each staticDays as day}
         <div
           class="flex flex-col items-center justify-center h-full border-r border-dashed border-border-dark/50 {day.today
             ? 'bg-primary/10'
@@ -159,7 +171,8 @@
   <svg
     class="absolute inset-0 w-full h-full pointer-events-none z-20"
     style="min-width: {SIDEBAR_WIDTH +
-      days.length * COL_WIDTH}px; min-height: {tasks.length * ROW_HEIGHT +
+      staticDays.length * COL_WIDTH}px; min-height: {ganttTasks.length *
+      ROW_HEIGHT +
       100}px;"
   >
     <defs>
@@ -199,109 +212,117 @@
   ></div>
 
   <div class="min-w-max pb-24">
-    {#each tasks as task}
-      <div
-        class="flex items-stretch h-20 group hover:bg-surface-highlight/50 transition-colors cursor-pointer"
-        onclick={() => handleTaskClick(task)}
-        role="button"
-        tabindex="0"
-        onkeydown={(e) => e.key === "Enter" && handleTaskClick(task)}
-      >
-        <!-- Sticky Sidebar -->
+    {#if tasksData.loading}
+      <div class="text-center py-10 text-text-muted">Loading timeline...</div>
+    {:else}
+      {#each ganttTasks as task}
         <div
-          class="sticky left-0 bg-background-dark group-hover:bg-surface-highlight/50 border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
-          style="width: {SIDEBAR_WIDTH}px;"
+          class="flex items-stretch h-20 group hover:bg-surface-highlight/50 transition-colors cursor-pointer"
+          onclick={() => handleTaskClick(task)}
+          role="button"
+          tabindex="0"
+          onkeydown={(e) => e.key === "Enter" && handleTaskClick(task)}
         >
-          <div class="flex items-center gap-2 mb-0.5">
-            {#if task.avatar}
-              <div
-                class="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10"
-                style="background-image: url('{task.avatar}');"
-              ></div>
-            {:else}
-              <div
-                class="size-7 rounded-full bg-surface-highlight shrink-0 flex items-center justify-center text-xs font-bold text-text-light border border-white/10"
-              >
-                {task.initials || "??"}
-              </div>
-            {/if}
-            <div class="flex flex-col overflow-hidden leading-tight">
-              <span class="text-xs font-bold truncate text-text-light"
-                >{task.name}</span
-              >
-              <span
-                class="text-[10px]"
-                class:text-secondary={task.status === "Done"}
-                class:text-primary={task.status === "In Progress"}
-                >{task.status}</span
-              >
-            </div>
-          </div>
+          <!-- Sticky Sidebar -->
           <div
-            class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9"
+            class="sticky left-0 bg-background-dark group-hover:bg-surface-highlight/50 border-r border-border-dark border-b z-10 flex flex-col justify-center px-3 py-1 gap-0.5 shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
+            style="width: {SIDEBAR_WIDTH}px;"
           >
-            <div class="flex items-center gap-1">
-              <span>{task.budget}</span>
-            </div>
-            {#if task.dependsOn}
-              <div class="flex items-center gap-1 text-primary">
-                <span class="material-symbols-outlined text-[10px]">link</span>
-                <span>#{task.dependsOn}</span>
+            <div class="flex items-center gap-2 mb-0.5">
+              {#if task.avatar}
+                <div
+                  class="size-7 rounded-full bg-cover bg-center shrink-0 border border-white/10"
+                  style="background-image: url('{task.avatar}');"
+                ></div>
+              {:else}
+                <div
+                  class="size-7 rounded-full bg-surface-highlight shrink-0 flex items-center justify-center text-xs font-bold text-text-light border border-white/10"
+                >
+                  {task.initials ||
+                    (task.assignee
+                      ? task.assignee.slice(0, 2).toUpperCase()
+                      : "??")}
+                </div>
+              {/if}
+              <div class="flex flex-col overflow-hidden leading-tight">
+                <span class="text-xs font-bold truncate text-text-light"
+                  >{task.name}</span
+                >
+                <span
+                  class="text-[10px]"
+                  class:text-secondary={task.status === "Done"}
+                  class:text-primary={task.status === "In Progress"}
+                  >{task.status}</span
+                >
               </div>
-            {/if}
-          </div>
-        </div>
-
-        <!-- Timeline Bars -->
-        <div class="flex relative border-b border-border-dark">
-          <!-- Background Grid -->
-          <div class="absolute inset-0 flex pointer-events-none">
-            {#each days as _}
-              <div
-                class="border-r border-dashed border-border-dark/30 h-full"
-                style="width: {COL_WIDTH}px;"
-              ></div>
-            {/each}
-          </div>
-
-          <!-- Task Bar -->
-          <div
-            class="relative h-full flex items-center"
-            style="padding-left: {task.startDay * COL_WIDTH}px;"
-          >
+            </div>
             <div
-              class="h-14 rounded-md flex flex-col justify-between relative overflow-hidden shadow-lg {task.color ===
-              'secondary'
-                ? 'bg-secondary/20'
-                : ''} {task.color === 'primary'
-                ? 'bg-primary/20'
-                : ''} {task.color === 'surface-highlight'
-                ? 'bg-surface-highlight'
-                : ''} {task.color === 'danger' ? 'bg-danger/20' : ''}"
-              style="width: {task.duration * COL_WIDTH -
-                20}px; margin-left: 10px;"
+              class="grid grid-cols-2 gap-x-2 text-[9px] text-text-muted font-medium ml-9"
+            >
+              <div class="flex items-center gap-1">
+                <span>{task.budget || "—"}</span>
+              </div>
+              {#if task.depends_on || task.dependsOn}
+                <div class="flex items-center gap-1 text-primary">
+                  <span class="material-symbols-outlined text-[10px]">link</span
+                  >
+                  <span>#{task.depends_on || task.dependsOn}</span>
+                </div>
+              {/if}
+            </div>
+          </div>
+
+          <!-- Timeline Bars -->
+          <div class="flex relative border-b border-border-dark">
+            <!-- Background Grid -->
+            <div class="absolute inset-0 flex pointer-events-none">
+              {#each staticDays as _}
+                <div
+                  class="border-r border-dashed border-border-dark/30 h-full"
+                  style="width: {COL_WIDTH}px;"
+                ></div>
+              {/each}
+            </div>
+
+            <!-- Task Bar -->
+            <div
+              class="relative h-full flex items-center"
+              style="padding-left: {(task.startDay || 0) * COL_WIDTH}px;"
             >
               <div
-                class="absolute inset-y-0 left-0 opacity-30 w-full"
-                class:bg-secondary={task.color === "secondary"}
-                class:bg-primary={task.color === "primary"}
-                class:bg-danger={task.color === "danger"}
-                style="width: {task.progress}%"
-              ></div>
-
-              <div
-                class="p-2 text-[9px] font-bold z-10 truncate"
-                class:text-secondary={task.color === "secondary"}
-                class:text-primary={task.color === "primary"}
-                class:text-danger={task.color === "danger"}
+                class="h-14 rounded-md flex flex-col justify-between relative overflow-hidden shadow-lg {task.color ===
+                'secondary'
+                  ? 'bg-secondary/20'
+                  : ''} {task.color === 'primary'
+                  ? 'bg-primary/20'
+                  : ''} {task.color === 'surface-highlight'
+                  ? 'bg-surface-highlight'
+                  : ''} {task.color === 'danger' ? 'bg-danger/20' : ''}"
+                style="width: {(task.duration || 1) * COL_WIDTH -
+                  20}px; margin-left: 10px;"
               >
-                {task.progress}% Complete
+                <div
+                  class="absolute inset-y-0 left-0 opacity-30 w-full"
+                  class:bg-secondary={task.color === "secondary"}
+                  class:bg-primary={task.color === "primary"}
+                  class:bg-danger={task.color === "danger"}
+                  style="width: {task.progress || 0}%"
+                ></div>
+
+                <div
+                  class="p-2 text-[9px] font-bold z-10 truncate"
+                  class:text-secondary={task.color === "secondary"}
+                  class:text-primary={task.color === "primary"}
+                  class:text-danger={task.color === "danger"}
+                >
+                  {task.progress || 0}% Complete
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    {/each}
+      {/each}
+    {/if}
 
     <!-- Add Task Button Row -->
     <div

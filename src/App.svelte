@@ -10,7 +10,7 @@
   import TaskDetail from "./lib/components/TaskDetail.svelte";
   import TaskForm from "./lib/components/TaskForm.svelte";
   import Toast from "./lib/components/Toast.svelte";
-  import { taskListData } from "./lib/data.js";
+  import { tasksStore } from "./lib/stores/tasksStore.js";
   import {
     checkDeadlineAlerts,
     showWarning,
@@ -24,20 +24,22 @@
 
   // Check for deadline alerts on mount
   onMount(() => {
-    // Slight delay to let the app render first
-    setTimeout(() => {
-      const alerts = checkDeadlineAlerts(taskListData);
-      alerts.forEach((alert, i) => {
-        // Stagger notifications
-        setTimeout(() => {
-          if (alert.type === "error") {
-            showError(alert.title, alert.message);
-          } else {
-            showWarning(alert.title, alert.message);
-          }
-        }, i * 800);
-      });
-    }, 1500);
+    tasksStore.fetch();
+    const unsub = tasksStore.subscribe((state) => {
+      if (!state.loading && state.tasks.length > 0) {
+        const alerts = checkDeadlineAlerts(state.tasks);
+        alerts.forEach((alert, i) => {
+          setTimeout(() => {
+            if (alert.type === "error") {
+              showError(alert.title, alert.message);
+            } else {
+              showWarning(alert.title, alert.message);
+            }
+          }, i * 800);
+        });
+        unsub(); // Only run once
+      }
+    });
   });
 
   function handleTabChange(tab) {

@@ -1,4 +1,7 @@
 <script>
+    import { tasksStore } from "../stores/tasksStore.js";
+    import { showSuccess, showError } from "../stores/notificationStore.js";
+
     export let onSubmit = null;
     export let onCancel = null;
 
@@ -17,9 +20,19 @@
         { id: 3, name: "Q4_MKT_CAMPAIGN" },
     ];
 
+    // Use local API during development
+    const API_BASE = import.meta.env.DEV
+        ? "http://127.0.0.1:8787"
+        : "https://project-control-center-api.perfectmoney7.workers.dev";
+
     async function handleSubmit() {
         if (!name.trim()) {
             error = "Task name is required";
+            return;
+        }
+
+        if (!assignee.trim()) {
+            error = "Assignee is required";
             return;
         }
 
@@ -28,27 +41,34 @@
 
         const newTask = {
             name: name.trim(),
-            assignee: assignee.trim() || "Unassigned",
+            assignee: assignee.trim(),
             priority,
-            dueDays: parseInt(dueDays),
-            projectId: parseInt(projectId),
+            due_days: Number(dueDays),
+            project_id: Number(projectId),
             status: "Pending",
             progress: 0,
         };
 
         try {
-            const res = await fetch(
-                "https://project-control-center-api.perfectmoney7.workers.dev/api/tasks",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(newTask),
-                },
-            );
+            const res = await fetch(`${API_BASE}/api/tasks`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newTask),
+            });
 
             if (!res.ok) throw new Error("Failed to create task");
 
             const created = await res.json();
+
+            // Show success notification
+            showSuccess(
+                "Task Created",
+                `${created.name} has been added successfully.`,
+            );
+
+            // Refresh the tasks list
+            tasksStore.fetch();
+
             if (onSubmit) onSubmit(created);
 
             // Reset form
@@ -58,6 +78,7 @@
             dueDays = 7;
         } catch (err) {
             error = err.message;
+            showError("Error", err.message);
         } finally {
             isSubmitting = false;
         }

@@ -1,4 +1,7 @@
 <script>
+    import { tasksStore } from "../stores/tasksStore.js";
+    import { showSuccess, showError } from "../stores/notificationStore.js";
+
     export let task = {
         id: "PROJ-123",
         name: "USER_AUTH_API",
@@ -22,6 +25,53 @@
         ],
     };
     export let onClose = () => {};
+
+    let isCompleting = false;
+
+    async function handleComplete() {
+        if (isCompleting) return;
+        isCompleting = true;
+
+        // Determine the correct API base
+        const API_BASE = import.meta.env.DEV
+            ? "http://127.0.0.1:8787"
+            : "https://project-control-center-api.perfectmoney7.workers.dev";
+
+        // Extract numeric ID from task.id (handles "GANTT-1" or just "1")
+        const taskId =
+            typeof task.id === "string" ? task.id.replace(/\D/g, "") : task.id;
+
+        // Map task properties to database schema fields
+        const updateData = {
+            name: task.name?.replace(/_/g, " ") || "Task",
+            status: "Done",
+            progress: 100,
+            priority: task.priority?.toLowerCase() || "medium",
+            assignee: task.assignee?.replace(/_/g, " ") || "Unassigned",
+            due_days: 0,
+            budget: task.allocated ? `$${task.allocated}` : null,
+            depends_on: null,
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updateData),
+            });
+
+            if (!res.ok) throw new Error("Failed to complete task");
+
+            showSuccess("Task Completed", `${task.name} marked as complete.`);
+            tasksStore.fetch(); // Refresh the task list
+            onClose();
+        } catch (err) {
+            console.error("Complete error:", err);
+            showError("Error", err.message);
+        } finally {
+            isCompleting = false;
+        }
+    }
 </script>
 
 <div
@@ -162,8 +212,10 @@
     class="fixed bottom-0 left-0 right-0 z-40 bg-background-dark/80 px-2 pt-2 pb-4 backdrop-blur-lg border-t border-border-dark"
 >
     <button
-        class="flex h-10 w-full items-center justify-center gap-2 bg-primary px-6 font-bold text-background-dark text-sm uppercase"
+        onclick={handleComplete}
+        disabled={isCompleting}
+        class="flex h-10 w-full items-center justify-center gap-2 bg-primary px-6 font-bold text-background-dark text-sm uppercase hover:brightness-110 transition-all disabled:opacity-50"
     >
-        CMD:TASK_COMPLETE
+        {isCompleting ? "COMPLETING..." : "CMD:TASK_COMPLETE"}
     </button>
 </div>

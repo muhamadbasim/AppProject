@@ -1,7 +1,9 @@
 import { writable } from 'svelte/store';
 
-// API Base URL - Cloudflare Worker
-const API_BASE = 'https://project-control-center-api.perfectmoney7.workers.dev';
+// Use local API during development, deployed API in production
+const API_BASE = import.meta.env.DEV
+    ? 'http://127.0.0.1:8787'
+    : 'https://project-control-center-api.perfectmoney7.workers.dev';
 
 // Dashboard Metrics Store
 function createMetricsStore() {

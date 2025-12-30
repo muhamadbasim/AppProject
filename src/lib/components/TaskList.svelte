@@ -1,13 +1,23 @@
 <script>
+  import { onMount } from "svelte";
   import TaskCard from "./TaskCard.svelte";
-  import { taskListData } from "../data.js";
+  import { tasksStore } from "../stores/tasksStore.js";
 
-  export let onTaskClick = null;
-  export let onFabClick = null;
+  let { onTaskClick = null, onFabClick = null } = $props();
 
-  // Filter and search state
-  let activeFilter = "all";
-  let searchQuery = "";
+  let tasksData = $state({ tasks: [], loading: true, error: null });
+  let activeFilter = $state("all");
+  let searchQuery = $state("");
+  let sortBy = $state("default"); // default, due, priority
+
+  onMount(() => {
+    tasksStore.fetch();
+  });
+
+  $effect(() => {
+    const unsub = tasksStore.subscribe((v) => (tasksData = v));
+    return unsub;
+  });
 
   const filters = [
     { id: "all", label: "ALL" },
@@ -15,9 +25,6 @@
     { id: "high", label: "HIGH" },
     { id: "completed", label: "DONE" },
   ];
-
-  // Sort state
-  let sortBy = "default"; // default, due, priority
 
   const priorityOrder = {
     critical: 4,
@@ -28,57 +35,67 @@
   };
 
   // Filtered and Sorted tasks
-  $: filteredTasks = taskListData
-    .filter((task) => {
-      // Search filter
-      const matchesSearch =
-        searchQuery === "" ||
-        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredTasks = $derived(
+    (tasksData.tasks || [])
+      .filter((task) => {
+        // Search filter
+        const matchesSearch =
+          searchQuery === "" ||
+          task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (task.id &&
+            String(task.id)
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())) ||
+          (task.assignee &&
+            task.assignee.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Status filter
-      let matchesFilter = true;
-      switch (activeFilter) {
-        case "active":
-          matchesFilter = task.progress < 100 && task.progress > 0;
-          break;
-        case "high":
-          matchesFilter =
-            task.priority === "high" || task.priority === "critical";
-          break;
-        case "completed":
-          matchesFilter = task.progress === 100;
-          break;
-        default:
-          matchesFilter = true;
-      }
+        // Status filter
+        let matchesFilter = true;
+        switch (activeFilter) {
+          case "active":
+            matchesFilter = task.progress < 100 && task.progress > 0;
+            break;
+          case "high":
+            matchesFilter =
+              task.priority === "high" || task.priority === "critical";
+            break;
+          case "completed":
+            matchesFilter = task.progress === 100;
+            break;
+          default:
+            matchesFilter = true;
+        }
 
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      if (sortBy === "due") {
-        return a.dueDays - b.dueDays;
-      } else if (sortBy === "priority") {
-        const pA = priorityOrder[a.priority] || 0;
-        const pB = priorityOrder[b.priority] || 0;
-        return pB - pA; // Descending (Critical first)
-      }
-      return 0; // Default order
-    });
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        if (sortBy === "due") {
+          return (
+            (a.due_days || a.dueDays || 0) - (b.due_days || b.dueDays || 0)
+          );
+        } else if (sortBy === "priority") {
+          const pA = priorityOrder[a.priority] || 0;
+          const pB = priorityOrder[b.priority] || 0;
+          return pB - pA; // Descending (Critical first)
+        }
+        return 0; // Default order
+      }),
+  );
 
   function handleTaskClick(task) {
     const detailedTask = {
       id: task.id,
       name: task.name.toUpperCase().replace(/\s+/g, "_"),
-      status: task.status.toUpperCase().replace(/\s+/g, "_"),
+      status: (task.status || "PENDING").toUpperCase().replace(/\s+/g, "_"),
       type: "TASK",
-      progress: task.progress,
-      assignee: task.assignee.toUpperCase().replace(/\s+/g, "_"),
-      dueDate: `${task.dueDays}D`,
-      priority: task.priority.toUpperCase(),
-      description: `Task: ${task.name}. Assigned to ${task.assignee}. Status: ${task.status}.`,
-      blockedBy: null,
+      progress: task.progress || 0,
+      assignee: (task.assignee || "UNASSIGNED")
+        .toUpperCase()
+        .replace(/\s+/g, "_"),
+      dueDate: `${task.due_days || task.dueDays || 0}D`,
+      priority: (task.priority || "MEDIUM").toUpperCase(),
+      description: `Task: ${task.name}. Assigned to ${task.assignee || "Unassigned"}. Status: ${task.status || "Pending"}.`,
+      blockedBy: task.depends_on || task.dependsOn || null,
       spent: 0,
       allocated: 1000,
       logs: [],
@@ -124,7 +141,7 @@
   <!-- Results Count & Sort -->
   <div class="flex items-center justify-between mb-2 px-1">
     <div class="text-[10px] text-text-muted uppercase">
-      {filteredTasks.length} / {taskListData.length} TASKS
+      {filteredTasks.length} / {tasksData.tasks.length} TASKS
     </div>
 
     <!-- Actions -->
