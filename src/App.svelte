@@ -10,6 +10,7 @@
   import TaskDetail from "./lib/components/TaskDetail.svelte";
   import TaskForm from "./lib/components/TaskForm.svelte";
   import Toast from "./lib/components/Toast.svelte";
+  import OfflineIndicator from "./lib/components/OfflineIndicator.svelte";
   import { tasksStore } from "./lib/stores/tasksStore.js";
   import {
     checkDeadlineAlerts,
@@ -74,6 +75,7 @@
 <div class="h-screen flex flex-col overflow-hidden font-display dark">
   <!-- Global Toast Notifications -->
   <Toast />
+  <OfflineIndicator />
 
   <Header />
 

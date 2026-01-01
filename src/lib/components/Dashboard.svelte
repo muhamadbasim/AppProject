@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import MetricCard from "./MetricCard.svelte";
+  import BudgetCard from "./BudgetCard.svelte";
   import ProjectList from "./ProjectList.svelte";
   import ProjectForm from "./ProjectForm.svelte";
   import { metricsStore, projectsStore } from "../stores/dashboardStore.js";
@@ -127,12 +128,18 @@
     </div>
   {:else if metricsData.error}
     <div
-      class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6 text-red-400 text-sm"
+      class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6 text-red-400 text-sm flex items-center justify-between"
     >
-      <span class="material-symbols-outlined text-base mr-2 align-middle"
-        >error</span
+      <div class="flex items-center">
+        <span class="material-symbols-outlined text-base mr-2">error</span>
+        <span>Error: {metricsData.error}</span>
+      </div>
+      <button
+        onclick={() => metricsStore.fetch()}
+        class="px-3 py-1 bg-red-500/30 hover:bg-red-500/50 rounded text-xs font-medium transition-colors"
       >
-      Error: {metricsData.error}
+        Retry
+      </button>
     </div>
   {:else}
     <div class="grid grid-cols-2 gap-3 mb-6">
@@ -143,6 +150,20 @@
           value={metric.value}
           description={metric.description}
         />
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Financial Health (New Epic 5) -->
+  {#if !projectsData.loading && !projectsData.error && projectsData.projects.length > 0}
+    <h3
+      class="text-xs font-semibold text-primary uppercase tracking-widest mb-3"
+    >
+      FINANCIAL_HEALTH
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+      {#each projectsData.projects.slice(0, 2) as project (project.id)}
+        <BudgetCard projectId={project.id} />
       {/each}
     </div>
   {/if}
@@ -165,12 +186,18 @@
     </div>
   {:else if projectsData.error}
     <div
-      class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400 text-sm"
+      class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400 text-sm flex items-center justify-between"
     >
-      <span class="material-symbols-outlined text-base mr-2 align-middle"
-        >error</span
+      <div class="flex items-center">
+        <span class="material-symbols-outlined text-base mr-2">error</span>
+        <span>Error: {projectsData.error}</span>
+      </div>
+      <button
+        onclick={() => projectsStore.fetch()}
+        class="px-3 py-1 bg-red-500/30 hover:bg-red-500/50 rounded text-xs font-medium transition-colors"
       >
-      Error: {projectsData.error}
+        Retry
+      </button>
     </div>
   {:else}
     <ProjectList

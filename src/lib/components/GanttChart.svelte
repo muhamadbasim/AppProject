@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { tasksStore } from "../stores/tasksStore.js";
+  import { showSuccess, showError } from "../stores/notificationStore.js";
   import { days as staticDays } from "../data.js";
 
   let { onTaskClick = null } = $props();
@@ -8,8 +9,30 @@
   let tasksData = $state({ tasks: [], loading: true, error: null });
   let viewMode = $state("day"); // day, week, month
 
+  // Drag-and-drop state
+  let dragState = $state({
+    isDragging: false,
+    taskId: null,
+    startX: 0,
+    originalStartDay: 0,
+    currentOffset: 0,
+  });
+  let showConflictModal = $state(false);
+  let conflictInfo = $state({ task: null, newStartDay: 0 });
+
+  const API_BASE = import.meta.env.DEV
+    ? "http://127.0.0.1:8787"
+    : "https://project-control-center-api.perfectmoney7.workers.dev";
+
   onMount(() => {
     tasksStore.fetch();
+    // Add global mouse handlers for drag
+    document.addEventListener("mousemove", handleDragMove);
+    document.addEventListener("mouseup", handleDragEnd);
+    return () => {
+      document.removeEventListener("mousemove", handleDragMove);
+      document.removeEventListener("mouseup", handleDragEnd);
+    };
   });
 
   $effect(() => {
@@ -66,6 +89,7 @@
   });
 
   function handleTaskClick(task) {
+    if (dragState.isDragging) return; // Don't open detail if dragging
     const detailedTask = {
       id: `GANTT-${task.id}`,
       name: task.name.toUpperCase().replace(/\s+/g, "_"),
@@ -84,6 +108,107 @@
     if (onTaskClick) {
       onTaskClick(detailedTask);
     }
+  }
+
+  // Drag handlers
+  function handleDragStart(e, task) {
+    e.stopPropagation();
+    e.preventDefault();
+    dragState = {
+      isDragging: true,
+      taskId: task.id,
+      startX: e.clientX,
+      originalStartDay: task.startDay ?? 0,
+      currentOffset: 0,
+    };
+  }
+
+  function handleDragMove(e) {
+    if (!dragState.isDragging) return;
+    const deltaX = e.clientX - dragState.startX;
+    const daysDelta = Math.round(deltaX / COL_WIDTH);
+    dragState.currentOffset = daysDelta;
+  }
+
+  function handleDragEnd(e) {
+    if (!dragState.isDragging) return;
+
+    const newStartDay = Math.max(
+      0,
+      dragState.originalStartDay + dragState.currentOffset,
+    );
+    const task = ganttTasks.find((t) => t.id === dragState.taskId);
+
+    if (task && dragState.currentOffset !== 0) {
+      // Check for dependency conflicts
+      const dependsOnId = task.depends_on || task.dependsOn;
+      if (dependsOnId) {
+        const predecessor = ganttTasks.find((t) => t.id === dependsOnId);
+        if (predecessor) {
+          const predecessorEnd =
+            (predecessor.startDay ?? 0) + (predecessor.duration ?? 1);
+          if (newStartDay < predecessorEnd) {
+            // Conflict detected!
+            conflictInfo = { task, newStartDay };
+            showConflictModal = true;
+            dragState = {
+              isDragging: false,
+              taskId: null,
+              startX: 0,
+              originalStartDay: 0,
+              currentOffset: 0,
+            };
+            return;
+          }
+        }
+      }
+      // No conflict, save immediately
+      saveTaskDates(task.id, newStartDay);
+    }
+
+    dragState = {
+      isDragging: false,
+      taskId: null,
+      startX: 0,
+      originalStartDay: 0,
+      currentOffset: 0,
+    };
+  }
+
+  async function saveTaskDates(taskId, newStartDay) {
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startDay: newStartDay }),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
+      showSuccess("Task Rescheduled", "Timeline updated successfully.");
+      tasksStore.fetch(); // Refresh
+    } catch (err) {
+      showError("Error", err.message);
+    }
+  }
+
+  function confirmConflict() {
+    if (conflictInfo.task) {
+      saveTaskDates(conflictInfo.task.id, conflictInfo.newStartDay);
+    }
+    showConflictModal = false;
+    conflictInfo = { task: null, newStartDay: 0 };
+  }
+
+  function cancelConflict() {
+    showConflictModal = false;
+    conflictInfo = { task: null, newStartDay: 0 };
+  }
+
+  // Calculate visual offset for dragging task
+  function getDragOffset(taskId) {
+    if (dragState.isDragging && dragState.taskId === taskId) {
+      return dragState.currentOffset * COL_WIDTH;
+    }
+    return 0;
   }
 </script>
 
@@ -284,22 +409,34 @@
               {/each}
             </div>
 
-            <!-- Task Bar -->
+            <!-- Task Bar (Draggable) -->
             <div
               class="relative h-full flex items-center"
-              style="padding-left: {(task.startDay || 0) * COL_WIDTH}px;"
+              style="padding-left: {(task.startDay || 0) * COL_WIDTH +
+                getDragOffset(task.id)}px; transition: {dragState.isDragging &&
+              dragState.taskId === task.id
+                ? 'none'
+                : 'padding-left 0.2s ease'};"
             >
               <div
-                class="h-14 rounded-md flex flex-col justify-between relative overflow-hidden shadow-lg {task.color ===
+                class="h-14 rounded-md flex flex-col justify-between relative overflow-hidden shadow-lg cursor-grab active:cursor-grabbing select-none {task.color ===
                 'secondary'
                   ? 'bg-secondary/20'
                   : ''} {task.color === 'primary'
                   ? 'bg-primary/20'
                   : ''} {task.color === 'surface-highlight'
                   ? 'bg-surface-highlight'
-                  : ''} {task.color === 'danger' ? 'bg-danger/20' : ''}"
+                  : ''} {task.color === 'danger'
+                  ? 'bg-danger/20'
+                  : ''} {dragState.isDragging && dragState.taskId === task.id
+                  ? 'ring-2 ring-primary scale-105'
+                  : ''}"
                 style="width: {(task.duration || 1) * COL_WIDTH -
                   20}px; margin-left: 10px;"
+                onmousedown={(e) => handleDragStart(e, task)}
+                role="button"
+                aria-label="Drag to reschedule {task.name}"
+                tabindex="0"
               >
                 <div
                   class="absolute inset-y-0 left-0 opacity-30 w-full"
@@ -332,3 +469,45 @@
     </div>
   </div>
 </div>
+
+<!-- Dependency Conflict Modal -->
+{#if showConflictModal}
+  <div
+    class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-surface-dark border border-border-dark rounded-lg p-6 max-w-md w-full shadow-2xl"
+    >
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-3xl text-danger"
+          >warning</span
+        >
+        <h3 class="text-lg font-bold text-text-light uppercase">
+          Dependency Conflict
+        </h3>
+      </div>
+      <p class="text-sm text-text-muted mb-4">
+        Moving <span class="text-primary font-bold"
+          >{conflictInfo.task?.name}</span
+        >
+        to day {conflictInfo.newStartDay}
+        would place it before its dependency completes. This may cause scheduling
+        issues.
+      </p>
+      <div class="flex gap-3">
+        <button
+          onclick={cancelConflict}
+          class="flex-1 py-2 px-4 text-sm font-bold uppercase bg-surface-highlight border border-border-dark text-text-muted rounded hover:bg-surface-dark transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onclick={confirmConflict}
+          class="flex-1 py-2 px-4 text-sm font-bold uppercase bg-danger text-white rounded hover:brightness-110 transition-all"
+        >
+          Move Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

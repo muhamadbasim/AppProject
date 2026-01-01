@@ -399,6 +399,122 @@ app.post('/api/risks', async (c) => {
     return c.json({ error: 'D1 not available' }, 500);
 });
 
+
+// ============================================================
+// RESOURCES & BUDGET ENDPOINTS (Epic 5)
+// ============================================================
+
+// Story 5.1: Resources
+app.get('/api/resources', async (c) => {
+    if (hasD1(c)) {
+        try {
+            const { results } = await c.env.DB.prepare('SELECT * FROM resources ORDER BY name').all();
+            return c.json(results);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to fetch resources' }, 500);
+        }
+    }
+    // Mock data for fallback testing
+    return c.json([
+        { id: 1, name: 'Alice Johnson', role: 'Frontend Dev', hourly_rate: 120 },
+        { id: 2, name: 'Bob Smith', role: 'Backend Dev', hourly_rate: 135 },
+        { id: 3, name: 'Charlie Brown', role: 'Designer', hourly_rate: 95 }
+    ]);
+});
+
+app.post('/api/resources', async (c) => {
+    const body = await c.req.json();
+    if (hasD1(c)) {
+        try {
+            const result = await c.env.DB.prepare(`
+                INSERT INTO resources (name, role, hourly_rate)
+                VALUES (?, ?, ?)
+            `).bind(body.name, body.role, body.hourly_rate).run();
+            return c.json({ success: true, id: result.meta.last_row_id }, 201);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to create resource' }, 500);
+        }
+    }
+    return c.json({ error: 'D1 not available' }, 500);
+});
+
+// Story 5.2: Resource Allocation
+app.get('/api/tasks/:id/resources', async (c) => {
+    const taskId = c.req.param('id');
+    if (hasD1(c)) {
+        try {
+            const { results } = await c.env.DB.prepare(`
+                SELECT tr.*, r.name, r.role, r.hourly_rate 
+                FROM task_resources tr
+                JOIN resources r ON tr.resource_id = r.id
+                WHERE tr.task_id = ?
+            `).bind(taskId).all();
+            return c.json(results);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to fetch task resources' }, 500);
+        }
+    }
+    return c.json([]);
+});
+
+app.post('/api/tasks/:id/resources', async (c) => {
+    const taskId = c.req.param('id');
+    const body = await c.req.json();
+    if (hasD1(c)) {
+        try {
+            const result = await c.env.DB.prepare(`
+                INSERT INTO task_resources (task_id, resource_id, allocated_hours)
+                VALUES (?, ?, ?)
+            `).bind(taskId, body.resource_id, body.allocated_hours).run();
+            return c.json({ success: true, id: result.meta.last_row_id }, 201);
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to allocate resource' }, 500);
+        }
+    }
+    return c.json({ error: 'D1 not available' }, 500);
+});
+
+// Story 5.3: Budget Tracking
+app.get('/api/projects/:id/budget', async (c) => {
+    const projectId = c.req.param('id');
+    if (hasD1(c)) {
+        try {
+            // Get Total Budget
+            const budget = await c.env.DB.prepare('SELECT * FROM project_budgets WHERE project_id = ?').bind(projectId).first();
+
+            // Calculate Actual Spend (Sum of allocated hours * hourly rate for all tasks in project)
+            const spendResult = await c.env.DB.prepare(`
+                SELECT SUM(tr.allocated_hours * r.hourly_rate) as total_spend
+                FROM task_resources tr
+                JOIN tasks t ON tr.task_id = t.id
+                JOIN resources r ON tr.resource_id = r.id
+                WHERE t.project_id = ?
+            `).bind(projectId).first();
+
+            const totalBudget = budget ? budget.total_budget : 0;
+            const actualSpend = spendResult ? (spendResult.total_spend || 0) : 0;
+
+            return c.json({
+                projectId,
+                totalBudget,
+                actualSpend,
+                remaining: totalBudget - actualSpend,
+                currency: budget ? budget.currency : 'USD'
+            });
+        } catch (e) {
+            console.error('D1 Error:', e);
+            return c.json({ error: 'Failed to fetch budget' }, 500);
+        }
+    }
+    // Fallback mock
+    return c.json({ projectId, totalBudget: 50000, actualSpend: 12500, remaining: 37500, currency: 'USD' });
+});
+
+
 app.get('/api/dashboard/metrics', async (c) => {
     let tasks = fallbackTasks;
     let projects = fallbackProjects;

@@ -1,47 +1,99 @@
 <script>
+    import { onMount } from "svelte";
     import { tasksStore } from "../stores/tasksStore.js";
+    import { resourcesStore } from "../stores/resourcesStore.js";
     import { showSuccess, showError } from "../stores/notificationStore.js";
 
-    export let task = {
-        id: "PROJ-123",
-        name: "USER_AUTH_API",
-        status: "IN_PROGRESS",
-        type: "BACKEND",
-        progress: 65,
-        assignee: "JANE_DOE",
-        dueDate: "OCT_24 (2D)",
-        priority: "HIGH",
-        description:
-            "REWRITE AUTHENTICATION MIDDLEWARE TO SUPPORT JWT_TOKENS. INCLUDES UPDATING USER_SCHEMA, IMPLEMENTING TOKEN_REFRESH_LOGIC, AND ENSURING BACKWARD_COMPATIBILITY WITH LEGACY SESSION-BASED_AUTH_SYSTEM.",
-        blockedBy: { id: "PROJ-40", name: "DATABASE SCHEMA UPDATE" },
-        spent: 2500,
-        allocated: 5000,
-        logs: [
-            {
-                user: "ALEX_M",
-                message: "CHECK NEW ENDPOINT_SPECS BEFORE STARTING.",
-                time: "2H_AGO",
-            },
-        ],
-    };
-    export let onClose = () => {};
+    let {
+        task = {
+            id: "PROJ-123",
+            name: "USER_AUTH_API",
+            status: "IN_PROGRESS",
+            type: "BACKEND",
+            progress: 65,
+            assignee: "JANE_DOE",
+            dueDate: "OCT_24 (2D)",
+            priority: "HIGH",
+            description: "Task description placeholder...",
+            spent: 0, // Fallback
+            allocated: 0, // Fallback
+            logs: [],
+        },
+        onClose = () => {},
+    } = $props();
 
-    let isCompleting = false;
+    let isCompleting = $state(false);
+    let isEditingNotes = $state(false);
+    let technicalNotes = $state("");
+
+    // Resource Allocation State
+    let selectedResource = $state("");
+    let allocationHours = $state(1);
+    let isAllocating = $state(false);
+
+    // Derived State
+    let taskId = $derived(
+        typeof task.id === "string" ? task.id.replace(/\D/g, "") : task.id,
+    );
+
+    // Subscribe to resources store
+    let resources = $state([]);
+    let allocations = $state([]);
+
+    $effect(() => {
+        const unsub = resourcesStore.subscribe((state) => {
+            resources = state.resources;
+            allocations = state.taskAllocations[taskId] || [];
+        });
+        return unsub;
+    });
+
+    onMount(() => {
+        resourcesStore.fetchResources();
+        if (taskId) {
+            resourcesStore.fetchTaskAllocations(taskId);
+        }
+    });
+
+    // Calculate dynamic financials
+    let totalSpent = $derived(
+        allocations.reduce(
+            (sum, a) => sum + a.allocated_hours * a.hourly_rate,
+            0,
+        ),
+    );
+    let budgetLimit = $derived(
+        task.budget ? parseFloat(task.budget.replace(/[^0-9.]/g, "")) : 0,
+    );
+
+    async function handleAllocate() {
+        if (!selectedResource || allocationHours <= 0) return;
+        isAllocating = true;
+
+        const res = await resourcesStore.allocateResource(
+            taskId,
+            selectedResource,
+            allocationHours,
+        );
+
+        isAllocating = false;
+        if (res.success) {
+            showSuccess("Resource Allocated", "Hours added successfully.");
+            selectedResource = "";
+            allocationHours = 1;
+        } else {
+            showError("Allocation Failed", res.error);
+        }
+    }
 
     async function handleComplete() {
         if (isCompleting) return;
         isCompleting = true;
 
-        // Determine the correct API base
         const API_BASE = import.meta.env.DEV
             ? "http://127.0.0.1:8787"
             : "https://project-control-center-api.perfectmoney7.workers.dev";
 
-        // Extract numeric ID from task.id (handles "GANTT-1" or just "1")
-        const taskId =
-            typeof task.id === "string" ? task.id.replace(/\D/g, "") : task.id;
-
-        // Map task properties to database schema fields
         const updateData = {
             name: task.name?.replace(/_/g, " ") || "Task",
             status: "Done",
@@ -63,7 +115,7 @@
             if (!res.ok) throw new Error("Failed to complete task");
 
             showSuccess("Task Completed", `${task.name} marked as complete.`);
-            tasksStore.fetch(); // Refresh the task list
+            tasksStore.fetch();
             onClose();
         } catch (err) {
             console.error("Complete error:", err);
@@ -95,7 +147,7 @@
             >
             <span
                 class="text-text-light bg-surface-highlight px-1 py-0 text-xs font-bold uppercase"
-                >TYPE: {task.type}</span
+                >TYPE: {task.type || "TASK"}</span
             >
         </div>
     </div>
@@ -104,7 +156,11 @@
     <div class="border-b border-border-dark py-2">
         <div class="flex justify-between">
             <span class="text-primary font-bold uppercase mr-4">PROG</span>
-            <span class="text-primary">{task.progress}% [ON_TRACK]</span>
+            <span class="text-primary"
+                >{task.progress}% [{task.progress === 100
+                    ? "COMPLETE"
+                    : "ON_TRACK"}]</span
+            >
         </div>
         <div
             class="h-2 w-full bg-surface-highlight flex items-center justify-start overflow-hidden my-1"
@@ -116,19 +172,91 @@
         </div>
     </div>
 
-    <!-- Assignee, Due, Priority -->
-    <div class="border-b border-border-dark py-2 space-y-1">
-        <div class="flex justify-between">
-            <span class="text-primary font-bold uppercase">ASSG</span>
-            <span>{task.assignee}</span>
+    <!-- Resources & Allocation (New Section) -->
+    <div class="border-b border-border-dark py-2">
+        <div class="flex justify-between mb-2">
+            <span class="text-primary font-bold uppercase"
+                >RESOURCES & COSTS</span
+            >
+            <span class="text-[10px] text-text-muted"
+                >BUDGET: ${budgetLimit.toLocaleString()}</span
+            >
         </div>
-        <div class="flex justify-between">
-            <span class="text-primary font-bold uppercase">DUE</span>
-            <span>{task.dueDate}</span>
+
+        <!-- Existing Allocations List -->
+        {#if allocations.length > 0}
+            <div class="space-y-1 mb-3">
+                {#each allocations as alloc}
+                    <div
+                        class="flex justify-between text-xs bg-surface-highlight/50 px-2 py-1 rounded"
+                    >
+                        <span>{alloc.name} ({alloc.role})</span>
+                        <div class="text-right">
+                            <span class="text-primary font-mono"
+                                >{alloc.allocated_hours}h</span
+                            >
+                            <span class="text-text-muted ml-1"
+                                >@ ${alloc.hourly_rate}/h</span
+                            >
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        {/if}
+
+        <!-- Add Allocation Form -->
+        <div class="bg-surface-highlight p-2 rounded">
+            <div class="text-[10px] font-bold text-text-muted mb-1 uppercase">
+                Allocate Resource
+            </div>
+            <div class="flex gap-2">
+                <select
+                    bind:value={selectedResource}
+                    class="flex-1 bg-background-dark text-xs text-text-light border border-border-dark rounded px-1 py-1 focus:border-primary outline-none"
+                >
+                    <option value="" disabled selected
+                        >Select Resource...</option
+                    >
+                    {#each resources as r}
+                        <option value={r.id}
+                            >{r.name} (${r.hourly_rate}/h)</option
+                        >
+                    {/each}
+                </select>
+                <input
+                    type="number"
+                    bind:value={allocationHours}
+                    min="0.5"
+                    step="0.5"
+                    class="w-16 bg-background-dark text-xs text-text-light border border-border-dark rounded px-1 py-1 focus:border-primary outline-none text-center"
+                />
+                <button
+                    onclick={handleAllocate}
+                    disabled={isAllocating || !selectedResource}
+                    class="bg-primary text-background-dark px-2 rounded font-bold text-xs hover:brightness-110 disabled:opacity-50"
+                >
+                    {isAllocating ? "..." : "+"}
+                </button>
+            </div>
         </div>
-        <div class="flex justify-between">
-            <span class="text-primary font-bold uppercase">PRIO</span>
-            <span class="text-orange-500 font-bold">{task.priority}</span>
+
+        <!-- Cost Summary -->
+        <div class="flex justify-between mt-3 text-xs">
+            <span class="text-text-muted">TOTAL SPENT:</span>
+            <span class="font-bold text-primary"
+                >${totalSpent.toLocaleString()}</span
+            >
+        </div>
+        <div class="flex justify-between text-[10px] text-text-muted">
+            <span
+                >REMAINING: ${(budgetLimit - totalSpent).toLocaleString()}</span
+            >
+            <span
+                >{(budgetLimit > 0
+                    ? (totalSpent / budgetLimit) * 100
+                    : 0
+                ).toFixed(1)}% of Budget</span
+            >
         </div>
     </div>
 
@@ -139,51 +267,6 @@
         </div>
         <div class="pl-4 text-xs overflow-auto max-h-24">
             <p>{task.description}</p>
-            <button class="text-xs text-primary mt-1 hover:underline"
-                >CMD:MORE_INFO</button
-            >
-        </div>
-    </div>
-
-    <!-- Dependencies -->
-    {#if task.blockedBy}
-        <div class="border-b border-border-dark py-2">
-            <div class="flex justify-between mb-1">
-                <span class="text-primary font-bold uppercase">DEPS</span>
-            </div>
-            <div class="pl-4 border-l border-primary pt-1 pb-1">
-                <span class="text-xs text-primary font-bold block"
-                    >BLOCKED_BY: {task.blockedBy.id}</span
-                >
-                <span class="text-xs block">{task.blockedBy.name}</span>
-                <button class="text-xs text-primary mt-1 hover:underline"
-                    >CMD:VIEW_DEP</button
-                >
-            </div>
-        </div>
-    {/if}
-
-    <!-- Budget -->
-    <div class="border-b border-border-dark py-2">
-        <div class="flex justify-between">
-            <span class="text-primary font-bold uppercase">SPNT</span>
-            <span>${task.spent}</span>
-        </div>
-        <div class="flex justify-between">
-            <span class="text-primary font-bold uppercase">ALLOC</span>
-            <span>${task.allocated}</span>
-        </div>
-        <div
-            class="h-2 w-full bg-surface-highlight flex items-center justify-start overflow-hidden my-1"
-        >
-            <div
-                class="h-full bg-primary"
-                style="width: {(task.spent / task.allocated) * 100}%;"
-            ></div>
-        </div>
-        <div class="flex justify-between text-xs text-text-muted">
-            <span>{Math.round((task.spent / task.allocated) * 100)}% USED</span>
-            <span>100% CAP</span>
         </div>
     </div>
 
@@ -193,16 +276,13 @@
             <span class="text-primary font-bold uppercase">LOGS</span>
         </div>
         <div class="pl-4 pt-1 pb-1">
-            {#each task.logs as log}
+            {#each task.logs || [] as log}
                 <p class="text-xs">
                     <span class="text-primary font-bold">{log.user}:</span>
                     "{log.message}"
                 </p>
                 <span class="text-xs text-text-muted">{log.time}</span>
             {/each}
-            <button class="text-xs text-primary mt-1 hover:underline block"
-                >CMD:VIEW_ALL_LOGS</button
-            >
         </div>
     </div>
 </div>

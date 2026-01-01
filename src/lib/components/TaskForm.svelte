@@ -8,12 +8,15 @@
     let name = "";
     let assignee = "";
     let priority = "medium";
+    let status = "pending";
+    let blockerReason = "";
     let dueDays = 7;
     let projectId = 1;
     let isSubmitting = false;
     let error = null;
 
     const priorities = ["low", "medium", "high", "critical"];
+    const statuses = ["pending", "in_progress", "blocked", "done"];
     const projects = [
         { id: 1, name: "WEB_REDESIGN_P1" },
         { id: 2, name: "API_INTEGRATION_MA" },
@@ -36,6 +39,11 @@
             return;
         }
 
+        if (status === "blocked" && !blockerReason.trim()) {
+            error = "Blocker reason is required when status is Blocked";
+            return;
+        }
+
         isSubmitting = true;
         error = null;
 
@@ -45,8 +53,16 @@
             priority,
             due_days: Number(dueDays),
             project_id: Number(projectId),
-            status: "Pending",
-            progress: 0,
+            status:
+                status === "blocked"
+                    ? "Blocked"
+                    : status === "in_progress"
+                      ? "In Progress"
+                      : status === "done"
+                        ? "Done"
+                        : "Pending",
+            progress: status === "done" ? 100 : 0,
+            blocker_reason: status === "blocked" ? blockerReason.trim() : null,
         };
 
         try {
@@ -75,6 +91,8 @@
             name = "";
             assignee = "";
             priority = "medium";
+            status = "pending";
+            blockerReason = "";
             dueDays = 7;
         } catch (err) {
             error = err.message;
@@ -138,9 +156,9 @@
             {#each priorities as p}
                 <button
                     type="button"
-                    onclick={() => (priority = p)}
+                    on:click={() => (priority = p)}
                     class="flex-1 py-2 text-xs font-bold uppercase rounded border transition-colors
-            {priority === p
+                    {priority === p
                         ? 'bg-primary text-background-dark border-primary'
                         : 'bg-surface-dark text-text-muted border-border-dark hover:border-primary/50'}"
                 >
@@ -149,6 +167,45 @@
             {/each}
         </div>
     </div>
+
+    <!-- Status -->
+    <div class="space-y-1">
+        <label class="text-xs text-primary font-bold uppercase">STATUS:</label>
+        <div class="flex gap-2">
+            {#each statuses as s}
+                <button
+                    type="button"
+                    on:click={() => (status = s)}
+                    class="flex-1 py-2 text-xs font-bold uppercase rounded border transition-colors
+                    {status === s
+                        ? s === 'blocked'
+                            ? 'bg-red-500 text-white border-red-500'
+                            : 'bg-primary text-background-dark border-primary'
+                        : 'bg-surface-dark text-text-muted border-border-dark hover:border-primary/50'}"
+                >
+                    {s.replace("_", " ")}
+                </button>
+            {/each}
+        </div>
+    </div>
+
+    <!-- Blocker Reason (shown when status is blocked) -->
+    {#if status === "blocked"}
+        <div class="space-y-1">
+            <label
+                for="blocker-reason"
+                class="text-xs text-red-500 font-bold uppercase"
+                >BLOCKER REASON (required):</label
+            >
+            <textarea
+                id="blocker-reason"
+                bind:value={blockerReason}
+                placeholder="Describe what is blocking this task..."
+                rows="2"
+                class="w-full bg-red-500/10 border border-red-500/50 rounded px-3 py-2 text-sm text-text-light placeholder:text-red-400/50 focus:outline-none focus:border-red-500"
+            ></textarea>
+        </div>
+    {/if}
 
     <!-- Due Days -->
     <div class="space-y-1">
@@ -186,14 +243,14 @@
     <div class="flex gap-3 mt-2">
         <button
             type="button"
-            onclick={onCancel}
+            on:click={onCancel}
             class="flex-1 py-3 text-sm font-bold uppercase bg-surface-dark border border-border-dark text-text-muted rounded hover:bg-surface-highlight transition-colors"
         >
             CANCEL
         </button>
         <button
             type="button"
-            onclick={handleSubmit}
+            on:click={handleSubmit}
             disabled={isSubmitting}
             class="flex-1 py-3 text-sm font-bold uppercase bg-primary text-background-dark rounded hover:brightness-110 transition-all disabled:opacity-50"
         >

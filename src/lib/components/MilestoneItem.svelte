@@ -1,7 +1,5 @@
 <script>
-    export let milestone = {};
-    export let isActive = false;
-    export let isCompleted = false;
+    let { milestone = {}, isActive = false, isCompleted = false } = $props();
 </script>
 
 <div class="flex gap-x-4">

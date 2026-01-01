@@ -254,6 +254,13 @@
             {:else if task.priority === "medium"}
               <span class="text-orange-500 text-[10px] ml-1">[MED]</span>
             {/if}
+            {#if task.status?.toLowerCase() === "blocked"}
+              <span
+                class="bg-red-500 text-white text-[9px] px-1 rounded ml-1"
+                title={task.blocker_reason || task.blockerReason || "Blocked"}
+                >BLOCKED</span
+              >
+            {/if}
           </p>
           <p class="text-[10px] text-text-muted">{task.id}</p>
         </div>
