@@ -1,4 +1,5 @@
 <script>
+  import BackendStatus from "./lib/components/BackendStatus.svelte";
   import { onMount } from "svelte";
   import Header from "./lib/components/Header.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -80,6 +81,7 @@
   <Header />
 
   <main class="flex-1 overflow-hidden relative flex flex-col">
+    <BackendStatus />
     {#if activeTab === "gantt"}
       <GanttChart onTaskClick={handleTaskClick} />
     {:else if activeTab === "tasks"}

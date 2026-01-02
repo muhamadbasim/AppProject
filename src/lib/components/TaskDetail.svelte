@@ -3,6 +3,7 @@
     import { tasksStore } from "../stores/tasksStore.js";
     import { resourcesStore } from "../stores/resourcesStore.js";
     import { showSuccess, showError } from "../stores/notificationStore.js";
+    import { API_BASE } from "../config.js";
 
     let {
         task = {
@@ -89,10 +90,6 @@
     async function handleComplete() {
         if (isCompleting) return;
         isCompleting = true;
-
-        const API_BASE = import.meta.env.DEV
-            ? "http://127.0.0.1:8787"
-            : "https://project-control-center-api.perfectmoney7.workers.dev";
 
         const updateData = {
             name: task.name?.replace(/_/g, " ") || "Task",

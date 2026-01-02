@@ -1,8 +1,6 @@
 import { writable } from 'svelte/store';
 
-const API_BASE = import.meta.env.DEV
-    ? "http://127.0.0.1:8787"
-    : "https://project-control-center-api.perfectmoney7.workers.dev";
+import { API_BASE } from '../config.js';
 
 function createResourcesStore() {
     const { subscribe, set, update } = writable({
