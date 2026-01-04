@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { tasksStore } from "../stores/tasksStore.js";
+  import { API_BASE } from "../config.js";
   import { showSuccess, showError } from "../stores/notificationStore.js";
   import { days as staticDays } from "../data.js";
 
@@ -19,10 +20,6 @@
   });
   let showConflictModal = $state(false);
   let conflictInfo = $state({ task: null, newStartDay: 0 });
-
-  const API_BASE = import.meta.env.DEV
-    ? "http://127.0.0.1:8787"
-    : "https://project-control-center-api.perfectmoney7.workers.dev";
 
   onMount(() => {
     tasksStore.fetch();
@@ -63,6 +60,41 @@
       color: t.color || "primary",
     })),
   );
+
+  // Critical Path Analysis (Derived)
+  const criticalPathIds = $derived.by(() => {
+    if (!ganttTasks.length) return new Set();
+
+    // 1. Find the task(s) that end latest
+    let latestEndTime = -1;
+    let terminalTasks = [];
+    ganttTasks.forEach((t) => {
+      const end = (t.startDay || 0) + (t.duration || 1);
+      if (end > latestEndTime) {
+        latestEndTime = end;
+        terminalTasks = [t.id];
+      } else if (end === latestEndTime) {
+        terminalTasks.push(t.id);
+      }
+    });
+
+    const critical = new Set();
+    const stack = [...terminalTasks];
+
+    // 2. Trace back dependencies
+    while (stack.length > 0) {
+      const currentId = stack.pop();
+      if (critical.has(currentId)) continue;
+      critical.add(currentId);
+
+      const currentTask = ganttTasks.find((t) => t.id === currentId);
+      if (currentTask) {
+        const depId = currentTask.depends_on || currentTask.dependsOn;
+        if (depId) stack.push(depId);
+      }
+    }
+    return critical;
+  });
 
   // Calculate dependency arrow positions
   const dependencyArrows = $derived.by(() => {
@@ -389,8 +421,21 @@
               </div>
               {#if task.depends_on || task.dependsOn}
                 <div class="flex items-center gap-1 text-primary">
-                  <span class="material-symbols-outlined text-[10px]">link</span
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="10"
+                    height="10"
+                    fill="none"
+                    class="stroke-current"
                   >
+                    <path
+                      d="M14 7H16C18.7614 7 21 9.23858 21 12C21 14.7614 18.7614 17 16 17H14M10 7H8C5.23858 7 3 9.23858 3 12C3 14.7614 5.23858 17 8 17H10M8 12H16"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
                   <span>#{task.depends_on || task.dependsOn}</span>
                 </div>
               {/if}
@@ -430,6 +475,8 @@
                   ? 'bg-danger/20'
                   : ''} {dragState.isDragging && dragState.taskId === task.id
                   ? 'ring-2 ring-primary scale-105'
+                  : ''} {criticalPathIds.has(task.id)
+                  ? 'ring-1 ring-red-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
                   : ''}"
                 style="width: {(task.duration || 1) * COL_WIDTH -
                   20}px; margin-left: 10px;"
@@ -445,6 +492,17 @@
                   class:bg-danger={task.color === "danger"}
                   style="width: {task.progress || 0}%"
                 ></div>
+
+                {#if criticalPathIds.has(task.id)}
+                  <div class="absolute top-1 right-1 flex h-2 w-2 z-20">
+                    <span
+                      class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"
+                    ></span>
+                    <span
+                      class="relative inline-flex rounded-full h-2 w-2 bg-red-500"
+                    ></span>
+                  </div>
+                {/if}
 
                 <div
                   class="p-2 text-[9px] font-bold z-10 truncate"

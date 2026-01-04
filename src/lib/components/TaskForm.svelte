@@ -24,9 +24,7 @@
     ];
 
     // Use local API during development
-    const API_BASE = import.meta.env.DEV
-        ? "http://127.0.0.1:8787"
-        : "https://project-control-center-api.perfectmoney7.workers.dev";
+    import { API_BASE } from "../config.js";
 
     async function handleSubmit() {
         if (!name.trim()) {
@@ -148,11 +146,9 @@
         />
     </div>
 
-    <!-- Priority -->
     <div class="space-y-1">
-        <label class="text-xs text-primary font-bold uppercase">PRIORITY:</label
-        >
-        <div class="flex gap-2">
+        <span class="text-xs text-primary font-bold uppercase">PRIORITY:</span>
+        <div class="flex gap-2" role="group" aria-label="Priority Selection">
             {#each priorities as p}
                 <button
                     type="button"
@@ -168,10 +164,9 @@
         </div>
     </div>
 
-    <!-- Status -->
     <div class="space-y-1">
-        <label class="text-xs text-primary font-bold uppercase">STATUS:</label>
-        <div class="flex gap-2">
+        <span class="text-xs text-primary font-bold uppercase">STATUS:</span>
+        <div class="flex gap-2" role="group" aria-label="Status Selection">
             {#each statuses as s}
                 <button
                     type="button"

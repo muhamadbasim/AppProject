@@ -24,9 +24,7 @@
     ];
 
     // Use local API during development
-    const API_BASE = import.meta.env.DEV
-        ? "http://127.0.0.1:8787"
-        : "https://project-control-center-api.perfectmoney7.workers.dev";
+    import { API_BASE } from "../config.js";
 
     async function handleSubmit() {
         if (!name.trim()) {
@@ -38,6 +36,8 @@
         error = null;
 
         try {
+            if (!project || !project.id)
+                throw new Error("No project to update");
             const res = await fetch(`${API_BASE}/api/projects/${project.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

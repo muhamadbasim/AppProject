@@ -4,6 +4,7 @@
         milestonesStore,
         risksStore,
     } from "../stores/milestonesRisksStore.js";
+    import { API_BASE } from "../config.js";
     import { showSuccess, showError } from "../stores/notificationStore.js";
 
     let milestonesData = $state({ milestones: [], loading: true });
@@ -44,10 +45,6 @@
             current: false,
         },
     ];
-
-    const API_BASE = import.meta.env.DEV
-        ? "http://127.0.0.1:8787"
-        : "https://project-control-center-api.perfectmoney7.workers.dev";
 
     onMount(() => {
         milestonesStore.fetch();
