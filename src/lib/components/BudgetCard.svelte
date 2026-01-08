@@ -2,15 +2,20 @@
     import { onMount } from "svelte";
     import { resourcesStore } from "../stores/resourcesStore";
 
-    export let projectId;
+    let { projectId } = $props();
 
-    let budgetData = null;
+    let budgetData = $state(null);
 
-    // Use store subscription
-    resourcesStore.subscribe((state) => {
-        if (state.projectBudget && state.projectBudget.projectId == projectId) {
-            budgetData = state.projectBudget;
-        }
+    $effect(() => {
+        const unsub = resourcesStore.subscribe((state) => {
+            if (
+                state.projectBudget &&
+                state.projectBudget.projectId == projectId
+            ) {
+                budgetData = state.projectBudget;
+            }
+        });
+        return unsub;
     });
 
     onMount(() => {
@@ -20,21 +25,25 @@
     });
 
     // Color logic
-    $: percent = budgetData
-        ? (budgetData.actualSpend / budgetData.totalBudget) * 100
-        : 0;
-    $: barColor =
+    const percent = $derived(
+        budgetData
+            ? (budgetData.actualSpend / budgetData.totalBudget) * 100
+            : 0,
+    );
+    const barColor = $derived(
         percent > 100
             ? "bg-red-500"
             : percent > 80
               ? "bg-yellow-500"
-              : "bg-primary";
-    $: statusColor =
+              : "bg-primary",
+    );
+    const statusColor = $derived(
         percent > 100
             ? "text-red-400"
             : percent > 80
               ? "text-yellow-400"
-              : "text-primary";
+              : "text-primary",
+    );
 </script>
 
 <div

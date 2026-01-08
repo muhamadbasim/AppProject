@@ -1,7 +1,5 @@
 <script>
-  export let projects = [];
-  export let onProjectClick = null;
-  export let onEditClick = null;
+  let { projects = [], onProjectClick = null, onEditClick = null } = $props();
 
   function handleClick(project) {
     if (onProjectClick) {

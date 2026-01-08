@@ -1,19 +1,19 @@
 <script>
     import { tasksStore } from "../stores/tasksStore.js";
     import { showSuccess, showError } from "../stores/notificationStore.js";
+    import { API_BASE } from "../config.js";
 
-    export let onSubmit = null;
-    export let onCancel = null;
+    let { onSubmit = null, onCancel = null } = $props();
 
-    let name = "";
-    let assignee = "";
-    let priority = "medium";
-    let status = "pending";
-    let blockerReason = "";
-    let dueDays = 7;
-    let projectId = 1;
-    let isSubmitting = false;
-    let error = null;
+    let name = $state("");
+    let assignee = $state("");
+    let priority = $state("medium");
+    let status = $state("pending");
+    let blockerReason = $state("");
+    let dueDays = $state(7);
+    let projectId = $state(1);
+    let isSubmitting = $state(false);
+    let error = $state(null);
 
     const priorities = ["low", "medium", "high", "critical"];
     const statuses = ["pending", "in_progress", "blocked", "done"];
@@ -22,9 +22,6 @@
         { id: 2, name: "API_INTEGRATION_MA" },
         { id: 3, name: "Q4_MKT_CAMPAIGN" },
     ];
-
-    // Use local API during development
-    import { API_BASE } from "../config.js";
 
     async function handleSubmit() {
         if (!name.trim()) {
@@ -152,7 +149,7 @@
             {#each priorities as p}
                 <button
                     type="button"
-                    on:click={() => (priority = p)}
+                    onclick={() => (priority = p)}
                     class="flex-1 py-2 text-xs font-bold uppercase rounded border transition-colors
                     {priority === p
                         ? 'bg-primary text-background-dark border-primary'
@@ -170,7 +167,7 @@
             {#each statuses as s}
                 <button
                     type="button"
-                    on:click={() => (status = s)}
+                    onclick={() => (status = s)}
                     class="flex-1 py-2 text-xs font-bold uppercase rounded border transition-colors
                     {status === s
                         ? s === 'blocked'
@@ -238,14 +235,14 @@
     <div class="flex gap-3 mt-2">
         <button
             type="button"
-            on:click={onCancel}
+            onclick={onCancel}
             class="flex-1 py-3 text-sm font-bold uppercase bg-surface-dark border border-border-dark text-text-muted rounded hover:bg-surface-highlight transition-colors"
         >
             CANCEL
         </button>
         <button
             type="button"
-            on:click={handleSubmit}
+            onclick={handleSubmit}
             disabled={isSubmitting}
             class="flex-1 py-3 text-sm font-bold uppercase bg-primary text-background-dark rounded hover:brightness-110 transition-all disabled:opacity-50"
         >

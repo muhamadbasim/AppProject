@@ -2,8 +2,10 @@
   import NotificationBell from "./NotificationBell.svelte";
   import ExportButton from "./ExportButton.svelte";
 
-  export let title = "Project Control Center";
-  export let subtitle = "Real-time Project Overview";
+  let {
+    title = "Project Control Center",
+    subtitle = "Real-time Project Overview",
+  } = $props();
 </script>
 
 <header

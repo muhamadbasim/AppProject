@@ -1,16 +1,15 @@
 <script>
     import { projectsStore } from "../stores/dashboardStore.js";
     import { showSuccess, showError } from "../stores/notificationStore.js";
+    import { API_BASE } from "../config.js";
 
-    export let project = null; // Project to edit
-    export let onSubmit = null;
-    export let onCancel = null;
+    let { project = null, onSubmit = null, onCancel = null } = $props();
 
-    let name = project?.name || "";
-    let status = project?.status || "Pending";
-    let progress = project?.progress || 0;
-    let isSubmitting = false;
-    let error = null;
+    let name = $state(project?.name || "");
+    let status = $state(project?.status || "Pending");
+    let progress = $state(project?.progress || 0);
+    let isSubmitting = $state(false);
+    let error = $state(null);
 
     const statuses = [
         "Pending",
@@ -22,9 +21,6 @@
         "Critical",
         "Urgent",
     ];
-
-    // Use local API during development
-    import { API_BASE } from "../config.js";
 
     async function handleSubmit() {
         if (!name.trim()) {

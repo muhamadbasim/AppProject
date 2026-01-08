@@ -363,9 +363,8 @@
 
   <!-- Current Time Indicator -->
   <div
-    class="absolute top-0 bottom-0 left-[{SIDEBAR_WIDTH +
-      COL_WIDTH *
-        1.5}px] w-px bg-primary shadow-[0_0_8px_rgba(255,215,0,0.4)] z-10 pointer-events-none"
+    class="absolute top-0 bottom-0 w-px bg-primary shadow-[0_0_8px_rgba(255,215,0,0.4)] z-10 pointer-events-none"
+    style="left: {SIDEBAR_WIDTH + COL_WIDTH * 1.5}px;"
   ></div>
 
   <div class="min-w-max pb-24">
